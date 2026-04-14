@@ -174,7 +174,7 @@ function updateDoors(deltaTime: number) {
 }
 
 function updateNPCs(deltaTime: number) {
-  npcs.forEach(npc => npc.update(deltaTime))
+  npcs.forEach(npc => npc.update(deltaTime, camera.position))
 }
 
 function checkInteractions() {

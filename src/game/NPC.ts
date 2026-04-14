@@ -101,16 +101,18 @@ export class NPC {
     return this.config
   }
 
-  update(deltaTime: number) {
+  update(deltaTime: number, cameraPosition?: THREE.Vector3) {
     this.animationTime += deltaTime
 
-    // 待机动画 - 轻微上下浮动
+    // 待机动画 - 轻微上下浮动（只影响Y轴偏移，不改变基础位置）
     const floatY = Math.sin(this.animationTime * 1.5) * 0.05
-    this.mesh.position.y = floatY
 
     // 标签始终面向相机
     if (this.labelSprite) {
       this.labelSprite.position.y = 3.2 + floatY
+      if (cameraPosition) {
+        this.labelSprite.lookAt(cameraPosition)
+      }
     }
   }
 
