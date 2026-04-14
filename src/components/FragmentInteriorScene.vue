@@ -183,19 +183,24 @@ function checkInteractions() {
 
   // 检查门交互
   let foundDoor = false
+  let closestDoor: Door | null = null
+  let closestDoorDistance = Infinity
+
   for (const door of doors) {
-    if (door.checkInteraction(charPos, 4)) {
+    const distance = door.getPosition().distanceTo(charPos)
+    if (distance <= 4 && distance < closestDoorDistance) {
+      closestDoorDistance = distance
+      closestDoor = door
       foundDoor = true
-      if (nearbyDoor !== door) {
-        nearbyDoor?.setHighlighted(false)
-        nearbyDoor = door
-        nearbyDoor.setHighlighted(true)
-        emit('nearDoor', door.getConfig())
-      }
-      break
     }
   }
-  if (!foundDoor && nearbyDoor) {
+
+  if (closestDoor && nearbyDoor !== closestDoor) {
+    nearbyDoor?.setHighlighted(false)
+    nearbyDoor = closestDoor
+    nearbyDoor.setHighlighted(true)
+    emit('nearDoor', closestDoor.getConfig())
+  } else if (!foundDoor && nearbyDoor) {
     nearbyDoor.setHighlighted(false)
     nearbyDoor = null
     emit('nearDoor', null)
@@ -203,19 +208,24 @@ function checkInteractions() {
 
   // 检查NPC交互
   let foundNPC = false
+  let closestNPC: NPC | null = null
+  let closestNPCDistance = Infinity
+
   for (const npc of npcs) {
-    if (npc.checkInteraction(charPos, 3)) {
+    const distance = npc.getPosition().distanceTo(charPos)
+    if (distance <= 3 && distance < closestNPCDistance) {
+      closestNPCDistance = distance
+      closestNPC = npc
       foundNPC = true
-      if (nearbyNPC !== npc) {
-        nearbyNPC?.setHighlighted(false)
-        nearbyNPC = npc
-        nearbyNPC.setHighlighted(true)
-        emit('nearNPC', npc.getConfig())
-      }
-      break
     }
   }
-  if (!foundNPC && nearbyNPC) {
+
+  if (closestNPC && nearbyNPC !== closestNPC) {
+    nearbyNPC?.setHighlighted(false)
+    nearbyNPC = closestNPC
+    nearbyNPC.setHighlighted(true)
+    emit('nearNPC', closestNPC.getConfig())
+  } else if (!foundNPC && nearbyNPC) {
     nearbyNPC.setHighlighted(false)
     nearbyNPC = null
     emit('nearNPC', null)
