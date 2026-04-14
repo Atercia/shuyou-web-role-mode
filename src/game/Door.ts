@@ -123,7 +123,7 @@ export class Door {
     return this.config
   }
 
-  update(deltaTime: number) {
+  update(deltaTime: number, cameraPosition?: THREE.Vector3) {
     this.animationTime += deltaTime
 
     // 传送门波动效果
@@ -136,6 +136,11 @@ export class Door {
       const hue = (this.animationTime * 0.1) % 1
       const color = new THREE.Color().setHSL(hue, 0.5, 0.5)
       material.color.lerp(color, 0.05)
+    }
+
+    // 标签始终面向相机
+    if (this.labelSprite && cameraPosition) {
+      this.labelSprite.lookAt(cameraPosition)
     }
   }
 

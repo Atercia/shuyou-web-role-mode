@@ -65,14 +65,18 @@ const handleSpaceConfirm = () => {
   }
 }
 
-const handleNearDoor = (door: DoorConfig) => {
+const handleNearDoor = (door: DoorConfig | null) => {
   nearDoor.value = door
-  nearNPC.value = null
+  if (door) {
+    nearNPC.value = null
+  }
 }
 
-const handleNearNPC = (npc: NPCConfig) => {
+const handleNearNPC = (npc: NPCConfig | null) => {
   nearNPC.value = npc
-  nearDoor.value = null
+  if (npc) {
+    nearDoor.value = null
+  }
 }
 
 const handleExit = () => {

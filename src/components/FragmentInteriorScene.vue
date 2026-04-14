@@ -9,8 +9,8 @@ import { NPC, generateNPCs, type NPCConfig } from '@/game/NPC'
 
 const canvasRef = ref<HTMLCanvasElement>()
 const emit = defineEmits<{
-  nearDoor: [door: DoorConfig]
-  nearNPC: [npc: NPCConfig]
+  nearDoor: [door: DoorConfig | null]
+  nearNPC: [npc: NPCConfig | null]
   exit: []
 }>()
 
@@ -170,7 +170,7 @@ function createNPCs() {
 }
 
 function updateDoors(deltaTime: number) {
-  doors.forEach(door => door.update(deltaTime))
+  doors.forEach(door => door.update(deltaTime, camera.position))
 }
 
 function updateNPCs(deltaTime: number) {
@@ -198,6 +198,7 @@ function checkInteractions() {
   if (!foundDoor && nearbyDoor) {
     nearbyDoor.setHighlighted(false)
     nearbyDoor = null
+    emit('nearDoor', null)
   }
 
   // 检查NPC交互
@@ -217,6 +218,7 @@ function checkInteractions() {
   if (!foundNPC && nearbyNPC) {
     nearbyNPC.setHighlighted(false)
     nearbyNPC = null
+    emit('nearNPC', null)
   }
 }
 
