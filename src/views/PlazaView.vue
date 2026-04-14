@@ -1,15 +1,36 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import PlazaScene from '@/components/PlazaScene.vue'
+import FragmentModal from '@/components/FragmentModal.vue'
+import type { FragmentConfig } from '@/game/MemoryFragment'
 
 const containerRef = ref<HTMLDivElement>()
+const showModal = ref(false)
+const currentFragment = ref<FragmentConfig | null>(null)
 
 onMounted(() => {
-  // 确保canvas可以获得焦点来接收键盘事件
   if (containerRef.value) {
     containerRef.value.focus()
   }
 })
+
+const handleFragmentNearby = (fragment: FragmentConfig) => {
+  if (!showModal.value) {
+    currentFragment.value = fragment
+    showModal.value = true
+  }
+}
+
+const handleConfirm = () => {
+  showModal.value = false
+  // TODO: 进入碎片场景
+  alert(`进入 ${currentFragment.value?.name} 的记忆碎片！`)
+}
+
+const handleCancel = () => {
+  showModal.value = false
+  currentFragment.value = null
+}
 </script>
 
 <template>
@@ -38,11 +59,18 @@ onMounted(() => {
           <span>跳跃</span>
         </div>
       </div>
-      <p class="hint">点击场景区域开始游戏</p>
+      <p class="hint">寻找发光的记忆碎片，靠近后进入探索</p>
     </div>
     <div ref="containerRef" class="scene-wrapper" tabindex="0">
-      <PlazaScene />
+      <PlazaScene @fragment-nearby="handleFragmentNearby" />
     </div>
+
+    <FragmentModal
+      :fragment="currentFragment"
+      :visible="showModal"
+      @confirm="handleConfirm"
+      @cancel="handleCancel"
+    />
   </div>
 </template>
 
