@@ -154,12 +154,11 @@ export class Door {
       const material = this.portalMesh.material as THREE.MeshBasicMaterial
       if (highlighted) {
         material.opacity = 1
-        material.emissive = new THREE.Color(this.config.color)
-        material.emissiveIntensity = 0.5
+        // MeshBasicMaterial 没有 emissive，直接改变颜色
+        material.color.setHex(0xffffff)
       } else {
         material.opacity = 0.8
-        material.emissive = new THREE.Color(0x000000)
-        material.emissiveIntensity = 0
+        material.color.setHex(this.config.color)
       }
     }
   }
