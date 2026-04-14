@@ -240,12 +240,14 @@ function checkInteractions() {
     }
   }
 
-  if (closestNPC && nearbyNPC !== closestNPC) {
-    nearbyNPC?.setHighlighted(false)
-    nearbyNPC = closestNPC
-    nearbyNPC.setHighlighted(true)
-    emit('nearNPC', closestNPC.getConfig())
-  } else if (!foundNPC && nearbyNPC) {
+  if (closestNPC) {
+    if (nearbyNPC !== closestNPC) {
+      nearbyNPC?.setHighlighted(false)
+      nearbyNPC = closestNPC
+      nearbyNPC.setHighlighted(true)
+      emit('nearNPC', closestNPC.getConfig())
+    }
+  } else if (nearbyNPC) {
     nearbyNPC.setHighlighted(false)
     nearbyNPC = null
     emit('nearNPC', null)
