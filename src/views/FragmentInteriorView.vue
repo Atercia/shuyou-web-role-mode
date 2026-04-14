@@ -3,15 +3,19 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useFragmentStore } from '@/stores/fragment'
+import { useInventoryStore } from '@/stores/inventory'
 import FragmentInteriorScene from '@/components/FragmentInteriorScene.vue'
 import InteractionPrompt from '@/components/InteractionPrompt.vue'
 import PhilosophicalDialogue from '@/components/PhilosophicalDialogue.vue'
-import FloatingText from '@/components/FloatingText.vue'
+import RewardModal from '@/components/RewardModal.vue'
+import InventoryPanel from '@/components/InventoryPanel.vue'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
+import type { MetaphorFragment } from '@/types/inventory'
 
 const router = useRouter()
 const containerRef = ref<HTMLDivElement>()
 const fragmentStore = useFragmentStore()
+const inventoryStore = useInventoryStore()
 
 // 从store中解构响应式状态
 const { hasNearbyDoor, hasNearbyNPC, currentNPCName, currentNPCScenario } = storeToRefs(fragmentStore)
@@ -20,8 +24,9 @@ const { isKeyPressed } = useKeyboardControls()
 
 // 本地状态
 const showPhilosophicalDialogue = ref(false)
-const showFloatingText = ref(false)
-const floatingText = ref('')
+const showRewardModal = ref(false)
+const showInventory = ref(false)
+const currentReward = ref<MetaphorFragment | null>(null)
 
 // 监听空格键确认
 let checkInterval: number
@@ -44,11 +49,14 @@ onUnmounted(() => {
 })
 
 const handleSpaceConfirm = () => {
+  // 奖励弹窗显示中，只响应空格关闭奖励弹窗
+  if (showRewardModal.value) {
+    handleRewardClose()
+    return
+  }
+
   // 哲学对话显示中，不响应空格
   if (showPhilosophicalDialogue.value) return
-
-  // 悬浮文字显示中，不响应空格
-  if (showFloatingText.value) return
 
   if (hasNearbyDoor.value) {
     // 确认进入门
@@ -71,27 +79,52 @@ const handlePhilosophicalChoice = (choiceKey: 'a' | 's' | 'd') => {
   if (fragmentStore.nearbyNPC) {
     fragmentStore.markNPCAsInteracted(fragmentStore.nearbyNPC.id)
 
-    // 显示悬浮文字
-    const fragment = fragmentStore.nearbyNPC.scenario.metaphorFragment
-    floatingText.value = `${fragmentStore.nearbyNPC.name} 给了你「${fragment}」`
-    showFloatingText.value = true
+    // 生成隐喻碎片
+    const baseFragment = fragmentStore.nearbyNPC.scenario.metaphorFragment
+    const fragment = inventoryStore.generateFragment(
+      baseFragment,
+      `${fragmentStore.nearbyNPC.name}给予的哲学隐喻`,
+      '🔮'
+    )
+
+    // 添加到背包
+    inventoryStore.addFragment(fragment)
+
+    // 显示奖励
+    currentReward.value = fragment
+    showRewardModal.value = true
   }
 }
 
-const handleFloatingTextComplete = () => {
-  showFloatingText.value = false
-  floatingText.value = ''
+const handleRewardClose = () => {
+  showRewardModal.value = false
+  currentReward.value = null
 }
 
 const handleExit = () => {
   router.push('/plaza')
 }
+
+const toggleInventory = () => {
+  showInventory.value = !showInventory.value
+}
 </script>
 
 <template>
   <div class="interior-container">
+    <!-- 背包面板 -->
+    <InventoryPanel
+      :visible="showInventory"
+      @close="showInventory = false"
+    />
+
     <div class="header">
-      <h2>🌌 记忆碎片内部</h2>
+      <div class="header-left">
+        <h2>🌌 记忆碎片内部</h2>
+        <button class="inventory-btn" @click="toggleInventory">
+          🎒 背包 ({{ inventoryStore.fragmentCount }})
+        </button>
+      </div>
       <button class="exit-btn" @click="handleExit">离开碎片</button>
     </div>
 
@@ -101,7 +134,7 @@ const handleExit = () => {
 
     <!-- 交互提示 - 使用Pinia store状态 -->
     <InteractionPrompt
-      :visible="hasNearbyDoor && !showPhilosophicalDialogue && !showFloatingText"
+      :visible="hasNearbyDoor && !showPhilosophicalDialogue && !showRewardModal"
       :title="fragmentStore.nearbyDoor?.name || ''"
       description="这扇门通向未知的领域"
       action-key="空格"
@@ -109,7 +142,7 @@ const handleExit = () => {
     />
 
     <InteractionPrompt
-      :visible="hasNearbyNPC && !showPhilosophicalDialogue && !showFloatingText"
+      :visible="hasNearbyNPC && !showPhilosophicalDialogue && !showRewardModal"
       :title="currentNPCName"
       description="似乎有话要对你说..."
       action-key="空格"
@@ -125,12 +158,11 @@ const handleExit = () => {
       @close="showPhilosophicalDialogue = false"
     />
 
-    <!-- 悬浮文字提醒 -->
-    <FloatingText
-      :visible="showFloatingText"
-      :text="floatingText"
-      :duration="3000"
-      @complete="handleFloatingTextComplete"
+    <!-- 奖励弹窗 -->
+    <RewardModal
+      :visible="showRewardModal"
+      :fragment="currentReward"
+      @close="handleRewardClose"
     />
   </div>
 </template>
@@ -152,10 +184,31 @@ const handleExit = () => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .header h2 {
   margin: 0;
   color: #fff;
   font-size: 1.5rem;
+}
+
+.inventory-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: opacity 0.3s;
+}
+
+.inventory-btn:hover {
+  opacity: 0.9;
 }
 
 .exit-btn {
