@@ -8,6 +8,7 @@ import { RouterLink, RouterView } from 'vue-router'
       <nav>
         <RouterLink to="/">首页</RouterLink>
         <RouterLink to="/demo">2.5D Demo</RouterLink>
+        <RouterLink to="/plaza">广场探索</RouterLink>
       </nav>
     </div>
   </header>
