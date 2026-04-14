@@ -229,11 +229,14 @@ function checkInteractions() {
   let closestNPCDistance = Infinity
 
   for (const npc of npcs) {
-    const distance = npc.getPosition().distanceTo(charPos)
-    if (distance <= 3 && distance < closestNPCDistance) {
-      closestNPCDistance = distance
-      closestNPC = npc
-      foundNPC = true
+    // 使用 checkInteraction 方法，它会检查NPC是否已交互
+    if (npc.checkInteraction(charPos, 3)) {
+      const distance = npc.getPosition().distanceTo(charPos)
+      if (distance < closestNPCDistance) {
+        closestNPCDistance = distance
+        closestNPC = npc
+        foundNPC = true
+      }
     }
   }
 
