@@ -18,6 +18,11 @@ const router = createRouter({
       path: '/plaza',
       name: 'plaza',
       component: () => import('../views/PlazaView.vue')
+    },
+    {
+      path: '/fragment-interior',
+      name: 'fragment-interior',
+      component: () => import('../views/FragmentInteriorView.vue')
     }
   ]
 })

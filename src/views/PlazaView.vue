@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PlazaScene from '@/components/PlazaScene.vue'
 import FragmentModal from '@/components/FragmentModal.vue'
 import type { FragmentConfig } from '@/game/MemoryFragment'
 
+const router = useRouter()
 const containerRef = ref<HTMLDivElement>()
 const showModal = ref(false)
 const currentFragment = ref<FragmentConfig | null>(null)
@@ -23,8 +25,8 @@ const handleFragmentNearby = (fragment: FragmentConfig) => {
 
 const handleConfirm = () => {
   showModal.value = false
-  // TODO: 进入碎片场景
-  alert(`进入 ${currentFragment.value?.name} 的记忆碎片！`)
+  // 进入碎片内部场景
+  router.push('/fragment-interior')
 }
 
 const handleCancel = () => {
