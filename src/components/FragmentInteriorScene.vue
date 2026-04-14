@@ -29,11 +29,6 @@ let nearbyDoor: Door | null = null
 let nearbyNPC: NPC | null = null
 const { isKeyPressed } = useKeyboardControls()
 
-// 暴露方法给父组件
-defineExpose({
-  markNPCAsInteracted
-})
-
 function markNPCAsInteracted(npcId: string) {
   const npc = npcs.find(n => n.getConfig().id === npcId)
   if (npc) {
@@ -45,6 +40,11 @@ function markNPCAsInteracted(npcId: string) {
     }
   }
 }
+
+// 暴露方法给父组件
+defineExpose({
+  markNPCAsInteracted
+})
 
 onMounted(() => {
   if (!canvasRef.value) return
@@ -216,11 +216,11 @@ function checkInteractions() {
     nearbyDoor?.setHighlighted(false)
     nearbyDoor = closestDoor
     nearbyDoor.setHighlighted(true)
-    emit('nearDoor', closestDoor.getConfig())
+    window.dispatchEvent(new CustomEvent('door-near', { detail: closestDoor.getConfig() }))
   } else if (!foundDoor && nearbyDoor) {
     nearbyDoor.setHighlighted(false)
     nearbyDoor = null
-    emit('nearDoor', null)
+    window.dispatchEvent(new CustomEvent('door-near', { detail: null }))
   }
 
   // 检查NPC交互
@@ -242,15 +242,17 @@ function checkInteractions() {
 
   if (closestNPC) {
     if (nearbyNPC !== closestNPC) {
+      const config = closestNPC.getConfig()
       nearbyNPC?.setHighlighted(false)
       nearbyNPC = closestNPC
       nearbyNPC.setHighlighted(true)
-      emit('nearNPC', closestNPC.getConfig())
+      // 使用全局事件作为临时解决方案
+      window.dispatchEvent(new CustomEvent('npc-near', { detail: config }))
     }
   } else if (nearbyNPC) {
     nearbyNPC.setHighlighted(false)
     nearbyNPC = null
-    emit('nearNPC', null)
+    window.dispatchEvent(new CustomEvent('npc-near', { detail: null }))
   }
 }
 

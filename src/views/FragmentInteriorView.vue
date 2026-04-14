@@ -46,6 +46,16 @@ onMounted(() => {
       handleSpaceConfirm()
     }
   }, 100)
+
+  // 使用全局事件监听NPC靠近
+  window.addEventListener('npc-near', (event: any) => {
+    handleNearNPC(event.detail)
+  })
+
+  // 使用全局事件监听门靠近
+  window.addEventListener('door-near', (event: any) => {
+    handleNearDoor(event.detail)
+  })
 })
 
 onUnmounted(() => {
