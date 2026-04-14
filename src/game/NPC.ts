@@ -28,6 +28,7 @@ export class NPC {
   private isHighlighted: boolean = false
   private isInteracted: boolean = false
   private originalMaterials: Map<THREE.Mesh, THREE.Material> = new Map()
+  private interactionCircle: THREE.Mesh | null = null
 
   constructor(scene: THREE.Scene, config: NPCConfig) {
     this.scene = scene
@@ -36,6 +37,7 @@ export class NPC {
 
     this.createMesh()
     this.createLabel()
+    this.createInteractionCircle()
     this.setPosition(config.position.x, config.position.z)
   }
 
@@ -80,6 +82,21 @@ export class NPC {
     this.scene.add(this.mesh)
   }
 
+  private createInteractionCircle() {
+    // 创建交互范围圆圈（半径3）
+    const circleGeometry = new THREE.RingGeometry(2.8, 3, 32)
+    const circleMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4ecdc4,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    })
+    this.interactionCircle = new THREE.Mesh(circleGeometry, circleMaterial)
+    this.interactionCircle.rotation.x = -Math.PI / 2
+    this.interactionCircle.position.y = 0.05
+    this.scene.add(this.interactionCircle)
+  }
+
   private createLabel() {
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d')!
@@ -106,6 +123,11 @@ export class NPC {
 
   setPosition(x: number, z: number) {
     this.mesh.position.set(x, 0, z)
+    // 更新交互圆圈位置
+    if (this.interactionCircle) {
+      this.interactionCircle.position.x = x
+      this.interactionCircle.position.z = z
+    }
   }
 
   getPosition(): THREE.Vector3 {
@@ -178,6 +200,7 @@ export class NPC {
     // 已交互的NPC不高亮
     if (this.isInteracted) return
 
+    // NPC身体高亮
     this.mesh.children.forEach((child, index) => {
       if (index === 0 && child instanceof THREE.Mesh) {
         const material = child.material as THREE.MeshLambertMaterial
@@ -188,10 +211,27 @@ export class NPC {
         }
       }
     })
+
+    // 交互圆圈高亮
+    if (this.interactionCircle) {
+      const material = this.interactionCircle.material as THREE.MeshBasicMaterial
+      if (highlighted) {
+        material.opacity = 0.8
+        material.color.setHex(0xffff00) // 高亮时变为黄色
+      } else {
+        material.opacity = 0.3
+        material.color.setHex(0x4ecdc4) // 默认青色
+      }
+    }
   }
 
   dispose() {
     this.scene.remove(this.mesh)
+    if (this.interactionCircle) {
+      this.scene.remove(this.interactionCircle)
+      this.interactionCircle.geometry.dispose()
+      this.interactionCircle.material.dispose()
+    }
     this.mesh.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose()
