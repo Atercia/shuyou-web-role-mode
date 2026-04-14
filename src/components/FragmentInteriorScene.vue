@@ -29,6 +29,23 @@ let nearbyDoor: Door | null = null
 let nearbyNPC: NPC | null = null
 const { isKeyPressed } = useKeyboardControls()
 
+// 暴露方法给父组件
+defineExpose({
+  markNPCAsInteracted
+})
+
+function markNPCAsInteracted(npcId: string) {
+  const npc = npcs.find(n => n.getConfig().id === npcId)
+  if (npc) {
+    npc.markAsInteracted()
+    // 如果当前正在交互的是这个NPC，清空状态
+    if (nearbyNPC === npc) {
+      nearbyNPC = null
+      emit('nearNPC', null)
+    }
+  }
+}
+
 onMounted(() => {
   if (!canvasRef.value) return
 

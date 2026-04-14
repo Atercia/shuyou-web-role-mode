@@ -1,11 +1,22 @@
 import * as THREE from 'three'
 
+export interface PhilosophicalScenario {
+  context: string
+  question: string
+  choices: {
+    key: 'a' | 's' | 'd'
+    label: string
+    text: string
+  }[]
+  metaphorFragment: string
+}
+
 export interface NPCConfig {
   id: string
   name: string
   color: number
   position: { x: number; z: number }
-  dialogue: string[]
+  scenario: PhilosophicalScenario
 }
 
 export class NPC {
@@ -15,6 +26,8 @@ export class NPC {
   private labelSprite: THREE.Sprite | null = null
   private animationTime: number = 0
   private isHighlighted: boolean = false
+  private isInteracted: boolean = false
+  private originalMaterials: Map<THREE.Mesh, THREE.Material> = new Map()
 
   constructor(scene: THREE.Scene, config: NPCConfig) {
     this.scene = scene
@@ -34,6 +47,7 @@ export class NPC {
     body.position.y = 1
     body.castShadow = true
     this.mesh.add(body)
+    this.originalMaterials.set(body, bodyMaterial)
 
     // 头部
     const headGeometry = new THREE.SphereGeometry(0.35, 16, 16)
@@ -42,6 +56,7 @@ export class NPC {
     head.position.y = 2
     head.castShadow = true
     this.mesh.add(head)
+    this.originalMaterials.set(head, headMaterial)
 
     // 眼睛
     const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8)
@@ -101,11 +116,45 @@ export class NPC {
     return this.config
   }
 
+  hasInteracted(): boolean {
+    return this.isInteracted
+  }
+
+  markAsInteracted() {
+    this.isInteracted = true
+    this.applyEtherealEffect()
+  }
+
+  private applyEtherealEffect() {
+    // 应用虚幻效果 - 透明度和发光
+    this.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh && this.originalMaterials.has(child)) {
+        const originalMat = this.originalMaterials.get(child) as THREE.MeshLambertMaterial
+        const newMaterial = new THREE.MeshLambertMaterial({
+          color: originalMat.color,
+          transparent: true,
+          opacity: 0.4
+        })
+        child.material = newMaterial
+      }
+    })
+
+    // 标签也变淡
+    if (this.labelSprite) {
+      this.labelSprite.material.opacity = 0.4
+    }
+  }
+
   update(deltaTime: number, cameraPosition?: THREE.Vector3) {
     this.animationTime += deltaTime
 
     // 待机动画 - 轻微上下浮动（只影响Y轴偏移，不改变基础位置）
     const floatY = Math.sin(this.animationTime * 1.5) * 0.05
+
+    // 已交互的NPC有更慢的浮动和旋转
+    if (this.isInteracted) {
+      this.mesh.rotation.y += deltaTime * 0.2
+    }
 
     // 标签始终面向相机
     if (this.labelSprite) {
@@ -117,12 +166,18 @@ export class NPC {
   }
 
   checkInteraction(characterPosition: THREE.Vector3, interactionRadius: number = 3): boolean {
+    // 已交互的NPC不能再交互
+    if (this.isInteracted) return false
+
     const distance = this.mesh.position.distanceTo(characterPosition)
     return distance <= interactionRadius
   }
 
   setHighlighted(highlighted: boolean) {
     this.isHighlighted = highlighted
+    // 已交互的NPC不高亮
+    if (this.isInteracted) return
+
     this.mesh.children.forEach((child, index) => {
       if (index === 0 && child instanceof THREE.Mesh) {
         const material = child.material as THREE.MeshLambertMaterial
@@ -158,24 +213,51 @@ export function generateNPCs(): NPCConfig[] {
   return [
     {
       id: 'npc-1',
-      name: '神秘商人',
+      name: '存在之影',
       color: 0x8b4513,
       position: { x: -8, z: -8 },
-      dialogue: ['欢迎光临！', '我有一些稀有的物品...', '想要看看吗？']
+      scenario: {
+        context: '你站在一片虚无之中，面前是一面镜子，镜中映出的却不是你现在的模样，而是你从未成为的那个自己。',
+        question: '你会如何面对这个"可能的你"？',
+        choices: [
+          { key: 'a', label: 'A', text: '伸手触碰镜面，试图与他和解' },
+          { key: 's', label: 'S', text: '转身离去，坚信当下的选择才是真实' },
+          { key: 'd', label: 'D', text: '凝视良久，接受遗憾作为生命的一部分' }
+        ],
+        metaphorFragment: '存在主义之镜'
+      }
     },
     {
       id: 'npc-2',
-      name: '智慧老者',
+      name: '时间旅者',
       color: 0x4169e1,
       position: { x: 8, z: -8 },
-      dialogue: ['年轻人...', '这个碎片中隐藏着秘密', '你需要找到三把钥匙']
+      scenario: {
+        context: '你发现了一枚可以倒流时间的沙漏，但每倒流一秒，你的记忆就会消失一部分。',
+        question: '你会如何使用这份力量？',
+        choices: [
+          { key: 'a', label: 'A', text: '倒流时间拯救所爱之人，哪怕忘记自己是谁' },
+          { key: 's', label: 'S', text: '保留记忆，接受过去无法改变的事实' },
+          { key: 'd', label: 'D', text: '只倒流一瞬间，在记忆与改变之间寻找平衡' }
+        ],
+        metaphorFragment: '时间悖论之沙'
+      }
     },
     {
       id: 'npc-3',
-      name: '守护精灵',
+      name: '真理守门人',
       color: 0x32cd32,
       position: { x: 0, z: 8 },
-      dialogue: ['这里是记忆的核心', '小心选择你的道路', '每个门都通向不同的地方']
+      scenario: {
+        context: '你面前有两扇门：一扇通往绝对真理，但会让你失去所有情感；一扇通往永恒幸福，但建立在虚假之上。',
+        question: '你会推开哪一扇门？',
+        choices: [
+          { key: 'a', label: 'A', text: '选择真理之门，用理性超越情感的束缚' },
+          { key: 's', label: 'S', text: '选择幸福之门，相信感受比真实更重要' },
+          { key: 'd', label: 'D', text: '两扇都不选，在矛盾中保持清醒的痛苦' }
+        ],
+        metaphorFragment: '真理与幻象之钥'
+      }
     }
   ]
 }

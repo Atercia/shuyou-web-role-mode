@@ -3,8 +3,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FragmentInteriorScene from '@/components/FragmentInteriorScene.vue'
 import InteractionPrompt from '@/components/InteractionPrompt.vue'
+import PhilosophicalDialogue from '@/components/PhilosophicalDialogue.vue'
+import FloatingText from '@/components/FloatingText.vue'
 import type { DoorConfig } from '@/game/Door'
-import type { NPCConfig } from '@/game/NPC'
+import type { NPCConfig, PhilosophicalScenario } from '@/game/NPC'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
 
 const route = useRoute()
@@ -16,9 +18,21 @@ const { isKeyPressed } = useKeyboardControls()
 // 交互状态
 const nearDoor = ref<DoorConfig | null>(null)
 const nearNPC = ref<NPCConfig | null>(null)
-const showDialogue = ref(false)
-const currentDialogue = ref<string[]>([])
-const currentDialogueIndex = ref(0)
+
+// 哲学对话状态
+const showPhilosophicalDialogue = ref(false)
+const currentScenario = ref<PhilosophicalScenario | null>(null)
+const currentNPCName = ref('')
+
+// 悬浮文字状态
+const showFloatingText = ref(false)
+const floatingText = ref('')
+
+// 已交互的NPC记录
+const interactedNPCs = ref<Set<string>>(new Set())
+
+// 场景引用
+const sceneRef = ref<InstanceType<typeof FragmentInteriorScene> | null>(null)
 
 // 监听空格键确认
 let checkInterval: number
@@ -39,16 +53,11 @@ onUnmounted(() => {
 })
 
 const handleSpaceConfirm = () => {
-  if (showDialogue.value) {
-    // 对话中，下一句或关闭
-    if (currentDialogueIndex.value < currentDialogue.value.length - 1) {
-      currentDialogueIndex.value++
-    } else {
-      showDialogue.value = false
-      currentDialogueIndex.value = 0
-    }
-    return
-  }
+  // 哲学对话显示中，不响应空格
+  if (showPhilosophicalDialogue.value) return
+
+  // 悬浮文字显示中，不响应空格
+  if (showFloatingText.value) return
 
   if (nearDoor.value) {
     // 确认进入门
@@ -58,11 +67,36 @@ const handleSpaceConfirm = () => {
       // TODO: 切换到对应场景
     }
   } else if (nearNPC.value) {
-    // 开始对话
-    currentDialogue.value = nearNPC.value.dialogue
-    currentDialogueIndex.value = 0
-    showDialogue.value = true
+    // 开始哲学对话
+    currentScenario.value = nearNPC.value.scenario
+    currentNPCName.value = nearNPC.value.name
+    showPhilosophicalDialogue.value = true
   }
+}
+
+const handlePhilosophicalChoice = (choiceKey: 'a' | 's' | 'd') => {
+  // 关闭哲学对话
+  showPhilosophicalDialogue.value = false
+
+  // 标记NPC已交互
+  if (nearNPC.value) {
+    interactedNPCs.value.add(nearNPC.value.id)
+    // 通知场景组件标记NPC
+    sceneRef.value?.markNPCAsInteracted(nearNPC.value.id)
+
+    // 显示悬浮文字
+    const fragment = nearNPC.value.scenario.metaphorFragment
+    floatingText.value = `${nearNPC.value.name} 给了你「${fragment}」`
+    showFloatingText.value = true
+  }
+
+  // 清空当前NPC
+  nearNPC.value = null
+}
+
+const handleFloatingTextComplete = () => {
+  showFloatingText.value = false
+  floatingText.value = ''
 }
 
 const handleNearDoor = (door: DoorConfig | null) => {
@@ -73,6 +107,11 @@ const handleNearDoor = (door: DoorConfig | null) => {
 }
 
 const handleNearNPC = (npc: NPCConfig | null) => {
+  // 如果NPC已经交互过，不触发
+  if (npc && interactedNPCs.value.has(npc.id)) {
+    nearNPC.value = null
+    return
+  }
   nearNPC.value = npc
   if (npc) {
     nearDoor.value = null
@@ -93,6 +132,7 @@ const handleExit = () => {
 
     <div ref="containerRef" class="scene-wrapper" tabindex="0">
       <FragmentInteriorScene
+        ref="sceneRef"
         @near-door="handleNearDoor"
         @near-npc="handleNearNPC"
         @exit="handleExit"
@@ -101,7 +141,7 @@ const handleExit = () => {
 
     <!-- 交互提示 -->
     <InteractionPrompt
-      :visible="!!nearDoor && !showDialogue"
+      :visible="!!nearDoor && !showPhilosophicalDialogue && !showFloatingText"
       :title="nearDoor?.name || ''"
       description="这扇门通向未知的领域"
       action-key="空格"
@@ -109,42 +149,29 @@ const handleExit = () => {
     />
 
     <InteractionPrompt
-      :visible="!!nearNPC && !showDialogue"
+      :visible="!!nearNPC && !showPhilosophicalDialogue && !showFloatingText"
       :title="nearNPC?.name || ''"
       description="似乎有话要对你说..."
       action-key="空格"
       type="npc"
     />
 
-    <!-- 对话弹窗 -->
-    <Teleport to="body">
-      <Transition name="dialogue">
-        <div v-if="showDialogue" class="dialogue-overlay" @click="showDialogue = false">
-          <div class="dialogue-box" @click.stop>
-            <div class="speaker">
-              <span class="speaker-icon">👤</span>
-              <span class="speaker-name">{{ nearNPC?.name }}</span>
-            </div>
-            <div class="dialogue-content">
-              <p>{{ currentDialogue[currentDialogueIndex] }}</p>
-            </div>
-            <div class="dialogue-hint">
-              <span class="hint-text">
-                {{ currentDialogueIndex < currentDialogue.length - 1 ? '按空格键继续' : '按空格键结束' }}
-              </span>
-              <div class="progress-dots">
-                <span
-                  v-for="(_, index) in currentDialogue"
-                  :key="index"
-                  class="dot"
-                  :class="{ active: index === currentDialogueIndex }"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- 哲学对话弹窗 -->
+    <PhilosophicalDialogue
+      :visible="showPhilosophicalDialogue"
+      :npc-name="currentNPCName"
+      :scenario="currentScenario"
+      @choice="handlePhilosophicalChoice"
+      @close="showPhilosophicalDialogue = false"
+    />
+
+    <!-- 悬浮文字提醒 -->
+    <FloatingText
+      :visible="showFloatingText"
+      :text="floatingText"
+      :duration="3000"
+      @complete="handleFloatingTextComplete"
+    />
   </div>
 </template>
 
@@ -189,106 +216,5 @@ const handleExit = () => {
   flex: 1;
   overflow: hidden;
   outline: none;
-}
-
-/* 对话弹窗样式 */
-.dialogue-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 60px;
-  z-index: 200;
-}
-
-.dialogue-box {
-  width: 90%;
-  max-width: 800px;
-  background: linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 100%);
-  border: 2px solid #9b59b6;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.speaker {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(155, 89, 182, 0.3);
-}
-
-.speaker-icon {
-  font-size: 2rem;
-}
-
-.speaker-name {
-  color: #9b59b6;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.dialogue-content {
-  min-height: 80px;
-  margin-bottom: 20px;
-}
-
-.dialogue-content p {
-  color: #fff;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.dialogue-hint {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.hint-text {
-  color: #aaa;
-  font-size: 0.9rem;
-}
-
-.progress-dots {
-  display: flex;
-  gap: 8px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transition: all 0.3s;
-}
-
-.dot.active {
-  background: #9b59b6;
-  transform: scale(1.2);
-}
-
-/* 动画 */
-.dialogue-enter-active,
-.dialogue-leave-active {
-  transition: all 0.3s ease;
-}
-
-.dialogue-enter-from,
-.dialogue-leave-to {
-  opacity: 0;
-}
-
-.dialogue-enter-from .dialogue-box,
-.dialogue-leave-to .dialogue-box {
-  transform: translateY(20px);
 }
 </style>
