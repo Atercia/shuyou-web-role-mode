@@ -3,16 +3,13 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
+import { useFragmentStore } from '@/stores/fragment'
 import { Character } from '@/game/Character'
-import { Door, generateDoors, type DoorConfig } from '@/game/Door'
-import { NPC, generateNPCs, type NPCConfig } from '@/game/NPC'
+import { Door, generateDoors } from '@/game/Door'
+import { NPC, generateNPCs } from '@/game/NPC'
 
 const canvasRef = ref<HTMLCanvasElement>()
-const emit = defineEmits<{
-  nearDoor: [door: DoorConfig | null]
-  nearNPC: [npc: NPCConfig | null]
-  exit: []
-}>()
+const fragmentStore = useFragmentStore()
 
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
@@ -25,26 +22,9 @@ let lastTime = 0
 let character: Character
 const doors: Door[] = []
 const npcs: NPC[] = []
-let nearbyDoor: Door | null = null
-let nearbyNPC: NPC | null = null
+let sceneNearbyDoor: Door | null = null
+let sceneNearbyNPC: NPC | null = null
 const { isKeyPressed } = useKeyboardControls()
-
-function markNPCAsInteracted(npcId: string) {
-  const npc = npcs.find(n => n.getConfig().id === npcId)
-  if (npc) {
-    npc.markAsInteracted()
-    // 如果当前正在交互的是这个NPC，清空状态
-    if (nearbyNPC === npc) {
-      nearbyNPC = null
-      emit('nearNPC', null)
-    }
-  }
-}
-
-// 暴露方法给父组件
-defineExpose({
-  markNPCAsInteracted
-})
 
 onMounted(() => {
   if (!canvasRef.value) return
@@ -212,15 +192,16 @@ function checkInteractions() {
     }
   }
 
-  if (closestDoor && nearbyDoor !== closestDoor) {
-    nearbyDoor?.setHighlighted(false)
-    nearbyDoor = closestDoor
-    nearbyDoor.setHighlighted(true)
-    window.dispatchEvent(new CustomEvent('door-near', { detail: closestDoor.getConfig() }))
-  } else if (!foundDoor && nearbyDoor) {
-    nearbyDoor.setHighlighted(false)
-    nearbyDoor = null
-    window.dispatchEvent(new CustomEvent('door-near', { detail: null }))
+  if (closestDoor && sceneNearbyDoor !== closestDoor) {
+    sceneNearbyDoor?.setHighlighted(false)
+    sceneNearbyDoor = closestDoor
+    sceneNearbyDoor.setHighlighted(true)
+    // 使用Pinia store更新状态
+    fragmentStore.setNearbyDoor(closestDoor.getConfig())
+  } else if (!foundDoor && sceneNearbyDoor) {
+    sceneNearbyDoor.setHighlighted(false)
+    sceneNearbyDoor = null
+    fragmentStore.setNearbyDoor(null)
   }
 
   // 检查NPC交互
@@ -241,18 +222,18 @@ function checkInteractions() {
   }
 
   if (closestNPC) {
-    if (nearbyNPC !== closestNPC) {
+    if (sceneNearbyNPC !== closestNPC) {
       const config = closestNPC.getConfig()
-      nearbyNPC?.setHighlighted(false)
-      nearbyNPC = closestNPC
-      nearbyNPC.setHighlighted(true)
-      // 使用全局事件作为临时解决方案
-      window.dispatchEvent(new CustomEvent('npc-near', { detail: config }))
+      sceneNearbyNPC?.setHighlighted(false)
+      sceneNearbyNPC = closestNPC
+      sceneNearbyNPC.setHighlighted(true)
+      // 使用Pinia store更新状态
+      fragmentStore.setNearbyNPC(config)
     }
-  } else if (nearbyNPC) {
-    nearbyNPC.setHighlighted(false)
-    nearbyNPC = null
-    window.dispatchEvent(new CustomEvent('npc-near', { detail: null }))
+  } else if (sceneNearbyNPC) {
+    sceneNearbyNPC.setHighlighted(false)
+    sceneNearbyNPC = null
+    fragmentStore.setNearbyNPC(null)
   }
 }
 
