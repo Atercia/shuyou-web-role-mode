@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type { PhilosophicalScenario } from '@/game/NPC'
 
 interface Props {
@@ -15,6 +15,13 @@ const emit = defineEmits<{
 }>()
 
 const selectedChoice = ref<'a' | 's' | 'd' | null>(null)
+
+// 监听visible变化，当对话框打开时重置选择状态
+watch(() => props.visible, (newVisible) => {
+  if (newVisible) {
+    selectedChoice.value = null
+  }
+})
 
 // 监听键盘事件
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -101,73 +108,83 @@ const handleClose = () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 16px;
+  overflow: auto;
 }
 
 .dialogue-container {
   width: 100%;
   max-width: 700px;
+  max-height: calc(100vh - 32px);
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border: 2px solid #9b59b6;
   border-radius: 20px;
-  padding: 32px;
+  padding: 24px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(155, 89, 182, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .npc-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(155, 89, 182, 0.3);
+  flex-shrink: 0;
 }
 
 .npc-avatar {
-  font-size: 3rem;
-  width: 64px;
-  height: 64px;
+  font-size: 2.5rem;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(155, 89, 182, 0.2);
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .npc-info h3 {
   margin: 0;
   color: #fff;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
 }
 
 .npc-title {
   color: #9b59b6;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .scenario-section {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+  overflow-y: auto;
+  flex-shrink: 1;
+  min-height: 0;
 }
 
 .context-box {
   background: rgba(155, 89, 182, 0.1);
   border-left: 4px solid #9b59b6;
-  padding: 16px 20px;
-  margin-bottom: 16px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
   border-radius: 0 8px 8px 0;
 }
 
 .context-text {
   color: #e0e0e0;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.6;
   margin: 0;
   font-style: italic;
 }
 
 .question-box {
   background: rgba(0, 0, 0, 0.3);
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-radius: 8px;
 }
 
@@ -175,34 +192,36 @@ const handleClose = () => {
   display: inline-block;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 4px;
-  font-size: 0.8rem;
-  margin-bottom: 8px;
+  font-size: 0.75rem;
+  margin-bottom: 6px;
 }
 
 .question-text {
   color: #fff;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   margin: 0;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .choices-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .choice-item {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.3s ease;
 }
 
@@ -222,35 +241,113 @@ const handleClose = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 8px;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #fff;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .choice-text {
   color: #e0e0e0;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.5;
+  flex: 1;
 }
 
 .hint {
   text-align: center;
-  padding-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 }
 
 .hint-key {
   color: #888;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+/* 响应式适配 */
+@media (max-width: 600px) {
+  .dialogue-container {
+    padding: 16px;
+    max-height: calc(100vh - 24px);
+  }
+
+  .npc-avatar {
+    font-size: 2rem;
+    width: 44px;
+    height: 44px;
+  }
+
+  .npc-info h3 {
+    font-size: 1.1rem;
+  }
+
+  .context-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .question-text {
+    font-size: 0.95rem;
+  }
+
+  .choice-item {
+    padding: 10px 12px;
+  }
+
+  .choice-key {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .choice-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* 小屏幕高度适配 */
+@media (max-height: 700px) {
+  .dialogue-container {
+    padding: 16px;
+  }
+
+  .npc-header {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  .scenario-section {
+    margin-bottom: 12px;
+  }
+
+  .context-box {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+
+  .question-box {
+    padding: 10px 12px;
+  }
+
+  .choices-section {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .choice-item {
+    padding: 10px 12px;
+  }
 }
 
 /* 动画 */

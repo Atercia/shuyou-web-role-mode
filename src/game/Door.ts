@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import type { DoorRequirement } from '@/types/door'
 
 export interface DoorConfig {
   id: string
@@ -6,6 +7,8 @@ export interface DoorConfig {
   color: number
   position: { x: number; z: number }
   targetScene: string
+  // 进入条件要求
+  requirement?: DoorRequirement
 }
 
 export class Door {
@@ -189,21 +192,84 @@ export function generateDoors(): DoorConfig[] {
       name: '回忆之门',
       color: 0xff6b6b,
       position: { x: -12, z: 0 },
-      targetScene: 'memory-scene-1'
+      targetScene: 'memory-scene-1',
+      requirement: {
+        groups: [
+          {
+            description: '拥有存在主义相关的隐喻碎片',
+            conditions: [
+              {
+                type: 'has_fragment_name',
+                description: '拥有「存在主义之镜」碎片',
+                params: { name: '存在主义之镜' }
+              },
+              {
+                type: 'has_fragment_name',
+                description: '拥有「时间悖论之沙」碎片',
+                params: { name: '时间悖论之沙' }
+              }
+            ]
+          }
+        ],
+        successMessage: '回忆之门认可了你的哲学领悟，门缓缓打开...',
+        failureMessage: '回忆之门紧闭着，你需要先与存在之影或时间旅者交流，获得他们的隐喻碎片。'
+      }
     },
     {
       id: 'door-2',
       name: '挑战之门',
       color: 0x4ecdc4,
       position: { x: 12, z: 0 },
-      targetScene: 'challenge-scene'
+      targetScene: 'challenge-scene',
+      requirement: {
+        groups: [
+          {
+            description: '至少与一个NPC交互过',
+            conditions: [
+              {
+                type: 'npc_interacted_count',
+                description: '与至少1个NPC完成哲学对话',
+                params: { count: 1, operator: 'gte' }
+              }
+            ]
+          }
+        ],
+        successMessage: '挑战之门感受到你的成长，为你敞开...',
+        failureMessage: '挑战之门拒绝开启，你需要先与场景中的NPC进行哲学对话。'
+      }
     },
     {
       id: 'door-3',
       name: '秘密之门',
       color: 0xffe66d,
       position: { x: 0, z: -15 },
-      targetScene: 'secret-scene'
+      targetScene: 'secret-scene',
+      requirement: {
+        groups: [
+          {
+            description: '拥有真理与幻象之钥',
+            conditions: [
+              {
+                type: 'has_fragment_name',
+                description: '拥有「真理与幻象之钥」碎片',
+                params: { name: '真理与幻象之钥' }
+              }
+            ]
+          },
+          {
+            description: '或者拥有至少2个稀有度为稀有或以上的碎片',
+            conditions: [
+              {
+                type: 'has_rarity',
+                description: '拥有稀有或史诗碎片',
+                params: { rarity: 'uncommon', count: 2, operator: 'gte' }
+              }
+            ]
+          }
+        ],
+        successMessage: '秘密之门被你的智慧所打动，神秘的光芒从中散发...',
+        failureMessage: '秘密之门纹丝不动，你需要获得真理守门人的认可，或收集更多稀有的隐喻碎片。'
+      }
     }
   ]
 }

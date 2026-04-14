@@ -23,6 +23,11 @@ const router = createRouter({
       path: '/fragment-interior',
       name: 'fragment-interior',
       component: () => import('../views/FragmentInteriorView.vue')
+    },
+    {
+      path: '/book-interior',
+      name: 'book-interior',
+      component: () => import('../views/BookInteriorView.vue')
     }
   ]
 })

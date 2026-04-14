@@ -5,10 +5,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
 import { Character } from '@/game/Character'
 import { MemoryFragment, generateRandomFragment, type FragmentConfig } from '@/game/MemoryFragment'
+import { Book, generateBooks, type BookConfig } from '@/game/Book'
 
 const canvasRef = ref<HTMLCanvasElement>()
 const emit = defineEmits<{
   fragmentNearby: [fragment: FragmentConfig]
+  fragmentLeave: []
+  bookNearby: [book: BookConfig]
+  bookLeave: []
 }>()
 
 let scene: THREE.Scene
@@ -21,7 +25,9 @@ let lastTime = 0
 // 游戏对象
 let character: Character
 const fragments: MemoryFragment[] = []
+const books: Book[] = []
 let nearbyFragment: MemoryFragment | null = null
+let nearbyBook: Book | null = null
 const { isKeyPressed } = useKeyboardControls()
 
 onMounted(() => {
@@ -35,6 +41,9 @@ onMounted(() => {
 
   // 创建记忆碎片
   createFragments()
+
+  // 创建书籍
+  createBooks()
 
   // 创建角色
   character = new Character(scene)
@@ -52,8 +61,17 @@ onMounted(() => {
     // 更新碎片
     updateFragments(deltaTime)
 
+    // 更新书籍
+    updateBooks(deltaTime, time)
+
+    // 更新标签位置
+    updateLabels()
+
     // 检测碎片交互
     checkFragmentInteraction()
+
+    // 检测书籍交互
+    checkBookInteraction()
 
     // 更新相机跟随角色
     updateCamera()
@@ -79,6 +97,8 @@ onUnmounted(() => {
   }
   // 清理碎片
   fragments.forEach(fragment => fragment.dispose())
+  // 清理书籍
+  books.forEach(book => book.dispose())
   controls?.dispose()
   renderer?.dispose()
 })
@@ -209,9 +229,73 @@ function createFragments() {
   }
 }
 
+function createBooks() {
+  // 生成3本书籍
+  const bookConfigs = generateBooks()
+  
+  for (const config of bookConfigs) {
+    const book = new Book(scene, config)
+    books.push(book)
+  }
+}
+
+function updateBooks(deltaTime: number, time: number) {
+  books.forEach(book => {
+    book.update(deltaTime, time)
+    book.updateLabelScreenPosition(camera, renderer)
+  })
+}
+
+function checkBookInteraction() {
+  if (!character) return
+
+  const charPos = character.getPosition()
+  let foundNearby = false
+
+  for (const book of books) {
+    const isNearby = book.checkInteraction(charPos, 4)
+
+    if (isNearby) {
+      foundNearby = true
+      if (nearbyBook !== book) {
+        // 取消之前的高亮
+        if (nearbyBook) {
+          nearbyBook.setHighlighted(false)
+          emit('bookLeave')
+        }
+        // 高亮新的书籍
+        nearbyBook = book
+        nearbyBook.setHighlighted(true)
+        // 发送靠近事件
+        emit('bookNearby', book.getConfig())
+      }
+      break
+    }
+  }
+
+  if (!foundNearby && nearbyBook) {
+    nearbyBook.setHighlighted(false)
+    nearbyBook = null
+    // 发送离开事件
+    emit('bookLeave')
+  }
+}
+
 function updateFragments(deltaTime: number) {
   fragments.forEach((fragment) => {
     fragment.update(deltaTime)
+  })
+}
+
+function updateLabels() {
+  // 更新碎片标签位置
+  fragments.forEach((fragment) => {
+    fragment.updateLabelScreenPosition(camera, renderer)
+  })
+  
+  // 更新书籍标签位置
+  books.forEach((book) => {
+    book.updateLabelScreenPosition(camera, renderer)
   })
 }
 
@@ -230,11 +314,12 @@ function checkFragmentInteraction() {
         // 取消之前的高亮
         if (nearbyFragment) {
           nearbyFragment.setHighlighted(false)
+          emit('fragmentLeave')
         }
         // 高亮新的碎片
         nearbyFragment = fragment
         nearbyFragment.setHighlighted(true)
-        // 发送事件
+        // 发送靠近事件
         emit('fragmentNearby', fragment.getConfig())
       }
       break
@@ -244,8 +329,12 @@ function checkFragmentInteraction() {
   if (!foundNearby && nearbyFragment) {
     nearbyFragment.setHighlighted(false)
     nearbyFragment = null
+    // 发送离开事件
+    emit('fragmentLeave')
   }
 }
+
+
 
 function updateCharacter() {
   if (!character) return

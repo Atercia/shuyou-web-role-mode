@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+interface ConditionDetail {
+  description: string
+  satisfied: boolean
+}
+
 interface Props {
   visible: boolean
   title: string
   description?: string
   actionKey?: string
-  type: 'door' | 'npc'
+  type: 'door' | 'npc' | 'door-locked'
+  conditions?: ConditionDetail[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -15,10 +21,12 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const icon = computed(() => {
+  if (props.type === 'door-locked') return '🔒'
   return props.type === 'door' ? '🚪' : '👤'
 })
 
 const actionText = computed(() => {
+  if (props.type === 'door-locked') return ''
   return props.type === 'door' ? '进入' : '对话'
 })
 </script>
@@ -31,7 +39,19 @@ const actionText = computed(() => {
         <div class="info">
           <h4>{{ title }}</h4>
           <p v-if="description" class="description">{{ description }}</p>
-          <div class="action-hint">
+          <!-- 条件列表 -->
+          <div v-if="conditions && conditions.length > 0" class="conditions-list">
+            <div
+              v-for="(condition, index) in conditions"
+              :key="index"
+              class="condition-item"
+              :class="{ 'condition-met': condition.satisfied, 'condition-unmet': !condition.satisfied }"
+            >
+              <span class="condition-status">{{ condition.satisfied ? '✓' : '✗' }}</span>
+              <span class="condition-desc">{{ condition.description }}</span>
+            </div>
+          </div>
+          <div v-if="actionText" class="action-hint">
             <span class="key">{{ actionKey }}</span>
             <span>键{{ actionText }}</span>
           </div>
@@ -65,6 +85,11 @@ const actionText = computed(() => {
 .prompt-content.door {
   border-color: #ff6b6b;
   box-shadow: 0 10px 40px rgba(255, 107, 107, 0.3);
+}
+
+.prompt-content.door-locked {
+  border-color: #f44336;
+  box-shadow: 0 10px 40px rgba(244, 67, 54, 0.3);
 }
 
 .prompt-content.npc {
@@ -113,6 +138,45 @@ const actionText = computed(() => {
   font-weight: bold;
   font-size: 0.9rem;
   box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+}
+
+/* 条件列表样式 */
+.conditions-list {
+  margin: 10px 0;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.condition-status {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.condition-met .condition-status {
+  color: #4caf50;
+}
+
+.condition-unmet .condition-status {
+  color: #f44336;
+}
+
+.condition-met .condition-desc {
+  color: #a5d6a7;
+}
+
+.condition-unmet .condition-desc {
+  color: #ef9a9a;
 }
 
 /* 动画 */
