@@ -2,10 +2,9 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { 
   MetaphorFragment, 
-  InventoryItem, 
-  FragmentRarity, 
-  FragmentCompleteness 
+  InventoryItem
 } from '@/types/inventory'
+import { FragmentRarity, FragmentCompleteness } from '@/types/inventory'
 
 export const useInventoryStore = defineStore('inventory', () => {
   // State
@@ -45,11 +44,11 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
 
   const getCompletenessName = (completeness: FragmentCompleteness): string => {
-    const names = {
-      fragmented: '碎片',
-      partial: '残缺',
-      mostlyComplete: '较完整',
-      complete: '完整'
+    const names: Record<FragmentCompleteness, string> = {
+      [FragmentCompleteness.Fragmented]: '碎片',
+      [FragmentCompleteness.Partial]: '残缺',
+      [FragmentCompleteness.MostlyComplete]: '较完整',
+      [FragmentCompleteness.Complete]: '完整'
     }
     return names[completeness]
   }
@@ -102,19 +101,19 @@ export const useInventoryStore = defineStore('inventory', () => {
     // 随机稀有度
     const rarityRoll = Math.random()
     let rarity: FragmentRarity
-    if (rarityRoll < 0.5) rarity = 'common'
-    else if (rarityRoll < 0.75) rarity = 'uncommon'
-    else if (rarityRoll < 0.9) rarity = 'rare'
-    else rarity = 'legendary'
+    if (rarityRoll < 0.5) rarity = FragmentRarity.Common
+    else if (rarityRoll < 0.75) rarity = FragmentRarity.Uncommon
+    else if (rarityRoll < 0.9) rarity = FragmentRarity.Rare
+    else rarity = FragmentRarity.Legendary
 
     // 随机完整度 30-100
     const completenessValue = Math.floor(Math.random() * 71) + 30
     
     let completeness: FragmentCompleteness
-    if (completenessValue < 50) completeness = 'fragmented'
-    else if (completenessValue < 70) completeness = 'partial'
-    else if (completenessValue < 90) completeness = 'mostlyComplete'
-    else completeness = 'complete'
+    if (completenessValue < 50) completeness = FragmentCompleteness.Fragmented
+    else if (completenessValue < 70) completeness = FragmentCompleteness.Partial
+    else if (completenessValue < 90) completeness = FragmentCompleteness.MostlyComplete
+    else completeness = FragmentCompleteness.Complete
 
     return {
       id: `fragment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

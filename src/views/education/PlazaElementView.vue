@@ -21,7 +21,7 @@ const meta = PLAZA_ELEMENT_TYPE_META[elementType]
           <p class="scene-type">{{ meta?.label || elementType }}</p>
         </div>
       </div>
-      <router-link to="/plaza" class="back-btn">← 返回广场</router-link>
+      <router-link to="/challenge" class="back-btn">← 返回挑战</router-link>
     </div>
     <div class="scene-body">
       <div class="placeholder">

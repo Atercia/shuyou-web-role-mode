@@ -1,5 +1,8 @@
 import * as THREE from 'three'
-import type { DoorRequirement } from '@/types/door'
+import { ConditionType, type DoorRequirement } from '@/types/door'
+import { FragmentRarity } from '@/types/inventory'
+
+export type { DoorRequirement }
 
 export interface DoorConfig {
   id: string
@@ -199,12 +202,12 @@ export function generateDoors(): DoorConfig[] {
             description: '拥有存在主义相关的隐喻碎片',
             conditions: [
               {
-                type: 'has_fragment_name',
+                type: ConditionType.HAS_FRAGMENT_NAME,
                 description: '拥有「存在主义之镜」碎片',
                 params: { name: '存在主义之镜' }
               },
               {
-                type: 'has_fragment_name',
+                type: ConditionType.HAS_FRAGMENT_NAME,
                 description: '拥有「时间悖论之沙」碎片',
                 params: { name: '时间悖论之沙' }
               }
@@ -227,7 +230,7 @@ export function generateDoors(): DoorConfig[] {
             description: '至少与一个NPC交互过',
             conditions: [
               {
-                type: 'npc_interacted_count',
+                type: ConditionType.NPC_INTERACTED_COUNT,
                 description: '与至少1个NPC完成哲学对话',
                 params: { count: 1, operator: 'gte' }
               }
@@ -250,7 +253,7 @@ export function generateDoors(): DoorConfig[] {
             description: '拥有真理与幻象之钥',
             conditions: [
               {
-                type: 'has_fragment_name',
+                type: ConditionType.HAS_FRAGMENT_NAME,
                 description: '拥有「真理与幻象之钥」碎片',
                 params: { name: '真理与幻象之钥' }
               }
@@ -260,9 +263,9 @@ export function generateDoors(): DoorConfig[] {
             description: '或者拥有至少2个稀有度为稀有或以上的碎片',
             conditions: [
               {
-                type: 'has_rarity',
+                type: ConditionType.HAS_RARITY,
                 description: '拥有稀有或史诗碎片',
-                params: { rarity: 'uncommon', count: 2, operator: 'gte' }
+                params: { rarity: FragmentRarity.Uncommon, count: 2, operator: 'gte' }
               }
             ]
           }

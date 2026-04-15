@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import type { BookConfig, KnowledgePoint } from '@/types/book'
 
+export type { BookConfig, KnowledgePoint }
+
 export class Book {
   private scene: THREE.Scene
   private config: BookConfig
@@ -100,8 +102,18 @@ export class Book {
     this.labelElement.style.display = 'none'
   }
 
-  public updateLabelScreenPosition(camera: THREE.Camera, renderer: THREE.WebGLRenderer): void {
+  public updateLabelScreenPosition(camera: THREE.Camera, renderer: THREE.WebGLRenderer, characterPosition?: THREE.Vector3): void {
     if (!this.labelElement) return
+
+    // 距离检测：如果提供了角色位置，只在一定距离内显示标签
+    const maxLabelDistance = 30 // 最大显示标签距离
+    if (characterPosition) {
+      const distance = this.mesh.position.distanceTo(characterPosition)
+      if (distance > maxLabelDistance) {
+        this.labelElement.style.display = 'none'
+        return
+      }
+    }
 
     // 使用书籍的基准位置（不包含悬浮动画），标签固定在底部
     const position = new THREE.Vector3(
@@ -115,10 +127,21 @@ export class Book {
     const x = (position.x * 0.5 + 0.5) * renderer.domElement.clientWidth
     const y = (-position.y * 0.5 + 0.5) * renderer.domElement.clientHeight
 
-    if (position.z < 1) {
+    // 检测是否在视口内（添加边界缓冲）
+    const margin = 50 // 边界缓冲像素
+    const isInViewport = position.z < 1 && 
+                         x >= -margin && 
+                         x <= renderer.domElement.clientWidth + margin &&
+                         y >= -margin && 
+                         y <= renderer.domElement.clientHeight + margin
+
+    if (isInViewport) {
       this.labelElement.style.display = 'block'
-      this.labelElement.style.left = `${x}px`
-      this.labelElement.style.top = `${y}px`
+      // 限制标签位置在视口内，防止滚动条
+      const clampedX = Math.max(0, Math.min(x, renderer.domElement.clientWidth))
+      const clampedY = Math.max(0, Math.min(y, renderer.domElement.clientHeight))
+      this.labelElement.style.left = `${clampedX}px`
+      this.labelElement.style.top = `${clampedY}px`
     } else {
       this.labelElement.style.display = 'none'
     }
@@ -196,7 +219,7 @@ export function generateBooks(): BookConfig[] {
       name: '哲学入门',
       description: '探索哲学的基本概念和思考方式',
       color: 0x9b59b6,
-      position: { x: -20, z: -20 },
+      position: { x: -35, z: -35 },
       size: 1,
       estimatedWeeks: 2,
       knowledgePoints: [
@@ -212,7 +235,7 @@ export function generateBooks(): BookConfig[] {
       name: '时间简史',
       description: '探索时间的本质和宇宙的奥秘',
       color: 0x3498db,
-      position: { x: 20, z: -20 },
+      position: { x: 35, z: -35 },
       size: 1,
       estimatedWeeks: 3,
       knowledgePoints: [
@@ -228,7 +251,7 @@ export function generateBooks(): BookConfig[] {
       name: '心理学导论',
       description: '理解人类心智和行为的科学',
       color: 0xe74c3c,
-      position: { x: -20, z: 20 },
+      position: { x: -35, z: 35 },
       size: 1,
       estimatedWeeks: 4,
       knowledgePoints: [

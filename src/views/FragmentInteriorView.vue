@@ -156,7 +156,7 @@ const handleRewardClose = () => {
 }
 
 const handleExit = () => {
-  router.push('/plaza')
+  router.push('/challenge')
 }
 
 const toggleInventory = () => {

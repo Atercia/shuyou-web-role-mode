@@ -6,7 +6,8 @@ import {
   type SceneThemeConfig
 } from '@/types/scene'
 import type { NPCConfig, PhilosophicalScenario } from '@/game/NPC'
-import type { DoorConfig, DoorRequirement } from '@/game/Door'
+import type { DoorConfig } from '@/game/Door'
+import type { DoorRequirement } from '@/types/door'
 import { ConditionType } from '@/types/door'
 
 // 哲学主题库
@@ -116,11 +117,23 @@ function getRandomTheme(): SceneTheme {
 }
 
 // 生成随机位置（在圆环上均匀分布）
-function generatePosition(index: number, total: number, radius: number): { x: number; z: number } {
-  const angle = (index / total) * Math.PI * 2
+function generatePosition(index: number, total: number, radius: number, offsetAngle: number = 0): { x: number; z: number } {
+  const angle = (index / total) * Math.PI * 2 + offsetAngle
   return {
     x: Math.cos(angle) * radius,
     z: Math.sin(angle) * radius
+  }
+}
+
+// 生成交错位置（用于NPC和门错开分布）
+function generateStaggeredPosition(index: number, total: number, radius: number, isDoor: boolean = false): { x: number; z: number } {
+  // NPC和门错开半个角度间隔，确保不会重叠
+  const offsetAngle = isDoor ? (Math.PI / total) : 0
+  const angle = (index / total) * Math.PI * 2 + offsetAngle + (Math.random() * 0.3 - 0.15) // 添加随机偏移
+  const actualRadius = radius + (Math.random() * 2 - 1) // 半径也添加随机偏移
+  return {
+    x: Math.cos(angle) * actualRadius,
+    z: Math.sin(angle) * actualRadius
   }
 }
 
@@ -168,7 +181,7 @@ function generateNPCs(count: number, theme: SceneTheme): NPCConfig[] {
     usedThemeIndices.push(themeIndex)
     
     const philosophicalTheme = PHILOSOPHICAL_THEMES[themeIndex]
-    const position = generatePosition(i, count, 10 + Math.random() * 5)
+    const position = generateStaggeredPosition(i, count, 10 + Math.random() * 3, false)
     
     // 根据主题选择颜色
     const colors = [0x8b4513, 0x4169e1, 0x32cd32, 0xff6347, 0x9370db]
@@ -190,7 +203,7 @@ function generateDoors(count: number, theme: SceneTheme, dangerLevel: number): D
   const doors: DoorConfig[] = []
   
   for (let i = 0; i < count; i++) {
-    const position = generatePosition(i, count, 15 + Math.random() * 3)
+    const position = generateStaggeredPosition(i, count, 18 + Math.random() * 4, true)
     const nameIndex = Math.floor(Math.random() * DOOR_NAMES.length)
     
     // 根据危险等级调整门的要求

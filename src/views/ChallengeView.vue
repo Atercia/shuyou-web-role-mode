@@ -1,20 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import PlazaScene from '@/components/PlazaScene.vue'
 import InteractionPrompt from '@/components/InteractionPrompt.vue'
+import { useChallengeStore } from '@/stores/challenge'
+import { useMetaphorStore } from '@/stores/metaphor'
 import { useSceneStore } from '@/stores/scene'
-import { useUserStore } from '@/stores/user'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
 import type { FragmentConfig } from '@/game/MemoryFragment'
 import type { BookConfig } from '@/types/book'
 import type { PlazaElementConfig } from '@/types/plazaElement'
 import { PLAZA_ELEMENT_TYPE_META } from '@/types/plazaElement'
+import type { MetaphorFragment } from '@/types/metaphor'
 
 const router = useRouter()
+const challengeStore = useChallengeStore()
+const metaphorStore = useMetaphorStore()
 const sceneStore = useSceneStore()
-const userStore = useUserStore()
 const { isKeyPressed } = useKeyboardControls()
+
 const containerRef = ref<HTMLDivElement>()
 const plazaSceneRef = ref<InstanceType<typeof PlazaScene>>()
 
@@ -28,10 +32,16 @@ const currentPlazaElement = ref<PlazaElementConfig | null>(null)
 const showPlazaElementPrompt = ref(false)
 
 const showHelp = ref(false)
+const showExitConfirm = ref(false)
 
 let checkInterval: number
 
 onMounted(() => {
+  // 开始新挑战
+  if (!challengeStore.isInChallenge) {
+    challengeStore.startChallenge()
+  }
+
   if (containerRef.value) {
     containerRef.value.focus()
   }
@@ -51,6 +61,13 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (checkInterval) clearInterval(checkInterval)
+})
+
+// 监听时间结束
+watch(() => challengeStore.timeRemaining, (newVal) => {
+  if (newVal <= 0 && challengeStore.isInChallenge) {
+    endChallengeAndShowResult()
+  }
 })
 
 const handleFragmentNearby = (fragment: FragmentConfig) => {
@@ -84,8 +101,12 @@ const handlePlazaElementLeave = () => {
 }
 
 const enterFragment = (fragment: FragmentConfig) => {
+  // 生成隐喻碎片并收集
+  const metaphorFragment = challengeStore.generateRandomFragment()
+  challengeStore.collectFragment(metaphorFragment)
+  metaphorStore.addFragment(metaphorFragment)
+
   clearInterval(checkInterval)
-  userStore.addWeeks(fragment.estimatedWeeks)
   const sceneId = sceneStore.generateAndEnterScene({
     fragmentId: fragment.id,
     fragmentName: fragment.name,
@@ -100,8 +121,12 @@ const enterFragment = (fragment: FragmentConfig) => {
 }
 
 const enterBook = (book: BookConfig) => {
+  // 生成隐喻碎片并收集
+  const metaphorFragment = challengeStore.generateRandomFragment()
+  challengeStore.collectFragment(metaphorFragment)
+  metaphorStore.addFragment(metaphorFragment)
+
   clearInterval(checkInterval)
-  userStore.addWeeks(book.estimatedWeeks)
   router.push({
     path: '/book-interior',
     query: {
@@ -113,8 +138,12 @@ const enterBook = (book: BookConfig) => {
 }
 
 const enterPlazaElement = (element: PlazaElementConfig) => {
+  // 生成隐喻碎片并收集
+  const metaphorFragment = challengeStore.generateRandomFragment()
+  challengeStore.collectFragment(metaphorFragment)
+  metaphorStore.addFragment(metaphorFragment)
+
   clearInterval(checkInterval)
-  userStore.addWeeks(element.estimatedWeeks)
   router.push({
     path: `/plaza-element/${element.type}`,
     query: {
@@ -128,13 +157,35 @@ const enterPlazaElement = (element: PlazaElementConfig) => {
 const toggleHelp = () => {
   showHelp.value = !showHelp.value
 }
+
+const confirmExit = () => {
+  showExitConfirm.value = true
+  challengeStore.pauseTimer()
+}
+
+const cancelExit = () => {
+  showExitConfirm.value = false
+  challengeStore.resumeTimer()
+}
+
+const endChallengeAndShowResult = () => {
+  challengeStore.endChallenge()
+  router.push('/challenge-result')
+}
 </script>
 
 <template>
-  <div class="plaza-container">
-    <div class="age-display">
-      <div class="age-label">年龄</div>
-      <div class="age-value">{{ userStore.formattedAge }}</div>
+  <div class="challenge-container">
+    <!-- 倒计时显示 -->
+    <div class="timer-display" :class="{ 'time-low': challengeStore.isTimeLow }">
+      <div class="timer-label">剩余时间</div>
+      <div class="timer-value">{{ challengeStore.formattedTime }}</div>
+    </div>
+
+    <!-- 收集数量 -->
+    <div class="collect-display">
+      <div class="collect-label">已收集</div>
+      <div class="collect-value">{{ challengeStore.collectedCount }}</div>
     </div>
 
     <div class="top-right-buttons">
@@ -142,15 +193,16 @@ const toggleHelp = () => {
         <span class="help-icon">?</span>
         <span>帮助</span>
       </button>
-      <router-link to="/" class="back-button">
-        <span class="back-icon">←</span>
-        <span>返回</span>
-      </router-link>
+      <button class="exit-button" @click="confirmExit">
+        <span class="exit-icon">✕</span>
+        <span>结束</span>
+      </button>
     </div>
 
+    <!-- 帮助面板 -->
     <div v-if="showHelp" class="help-panel">
       <div class="help-header">
-        <h3>🎓 教育研学广场 - 操作指南</h3>
+        <h3>⚔️ 研学挑战 - 操作指南</h3>
         <button class="close-btn" @click="toggleHelp">×</button>
       </div>
       <div class="key-bindings">
@@ -172,45 +224,49 @@ const toggleHelp = () => {
         </div>
         <div class="key-item">
           <span class="key">空格</span>
-          <span>跳跃 / 交互</span>
+          <span>交互</span>
         </div>
       </div>
       <div class="help-section">
-        <h4>🏛️ 场景元素</h4>
-        <div class="element-list">
-          <div class="element-item">
-            <span class="element-icon">💎</span>
-            <span>记忆碎片 — 靠近后按空格进入碎片内部探索</span>
+        <h4>🎮 游戏规则</h4>
+        <div class="rule-list">
+          <div class="rule-item">
+            <span class="rule-icon">⏱️</span>
+            <span>挑战限时20分钟，时间结束自动结算</span>
           </div>
-          <div class="element-item">
-            <span class="element-icon">📖</span>
-            <span>知识书籍 — 靠近后按空格阅读知识点</span>
+          <div class="rule-item">
+            <span class="rule-icon">💎</span>
+            <span>每次挑战的碎片和书籍都是随机生成的</span>
           </div>
-          <div class="element-item">
-            <span class="element-icon">🏛️</span>
-            <span>文博场馆 — 参观华夏文明与自然探索馆</span>
+          <div class="rule-item">
+            <span class="rule-icon">🎯</span>
+            <span>靠近元素按空格交互，收集隐喻碎片</span>
           </div>
-          <div class="element-item">
-            <span class="element-icon">🔧</span>
-            <span>研学工坊 — 体验陶艺与非遗传承技艺</span>
-          </div>
-          <div class="element-item">
-            <span class="element-icon">⛩️</span>
-            <span>范式神殿 — 朝觐科学范式与哲学思辨殿堂</span>
-          </div>
-          <div class="element-item">
-            <span class="element-icon">🏪</span>
-            <span>知识市集 — 交换智慧与技能的集市</span>
+          <div class="rule-item">
+            <span class="rule-icon">🏆</span>
+            <span>碎片关联不同隐喻，可在成就馆查看</span>
           </div>
         </div>
       </div>
-      <p class="hint">每完成一次探索，年龄会增长对应的周数</p>
-      <p class="hint">收集的隐喻碎片可在首页「成就馆」中查看</p>
+      <p class="hint">收集的碎片会自动保存到成就馆</p>
+    </div>
+
+    <!-- 退出确认弹窗 -->
+    <div v-if="showExitConfirm" class="exit-modal">
+      <div class="exit-modal-content">
+        <h3>⚠️ 确认结束挑战？</h3>
+        <p>提前结束将立即进入结算界面</p>
+        <div class="exit-actions">
+          <button class="cancel-btn" @click="cancelExit">继续挑战</button>
+          <button class="confirm-btn" @click="endChallengeAndShowResult">结束挑战</button>
+        </div>
+      </div>
     </div>
 
     <div ref="containerRef" class="scene-wrapper" tabindex="0">
       <PlazaScene
         ref="plazaSceneRef"
+        :rogue-mode="true"
         @fragment-nearby="handleFragmentNearby"
         @fragment-leave="handleFragmentLeave"
         @book-nearby="handleBookNearby"
@@ -223,7 +279,7 @@ const toggleHelp = () => {
     <InteractionPrompt
       :visible="showFragmentPrompt"
       :title="currentFragment?.name || '记忆碎片'"
-      :description="`用时: ${currentFragment?.estimatedWeeks || 0}周 | 危险等级: ${currentFragment ? '★'.repeat(currentFragment.dangerLevel) : ''}`"
+      :description="`危险等级: ${currentFragment ? '★'.repeat(currentFragment.dangerLevel) : ''}`"
       action-key="空格"
       type="door"
     />
@@ -231,7 +287,7 @@ const toggleHelp = () => {
     <InteractionPrompt
       :visible="showBookPrompt"
       :title="currentBook?.name || '知识书籍'"
-      :description="`用时: ${currentBook?.estimatedWeeks || 0}周 | 包含5个知识点`"
+      :description="`包含隐喻碎片`"
       action-key="空格"
       type="npc"
     />
@@ -239,7 +295,7 @@ const toggleHelp = () => {
     <InteractionPrompt
       :visible="showPlazaElementPrompt"
       :title="currentPlazaElement?.name || '广场建筑'"
-      :description="`${PLAZA_ELEMENT_TYPE_META[currentPlazaElement?.type || 'museum']?.label || ''} | 用时: ${currentPlazaElement?.estimatedWeeks || 0}周 | ${currentPlazaElement?.description || ''}`"
+      :description="`${PLAZA_ELEMENT_TYPE_META[currentPlazaElement?.type || 'museum']?.label || ''} | ${currentPlazaElement?.description || ''}`"
       action-key="空格"
       type="plaza-element"
       :plaza-element-type="currentPlazaElement?.type"
@@ -248,7 +304,7 @@ const toggleHelp = () => {
 </template>
 
 <style scoped>
-.plaza-container {
+.challenge-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -258,7 +314,7 @@ const toggleHelp = () => {
   background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #16213e 100%);
 }
 
-.age-display {
+.timer-display {
   position: absolute;
   top: 1rem;
   left: 1rem;
@@ -272,17 +328,21 @@ const toggleHelp = () => {
     0 4px 20px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 100;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.age-display:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 8px 30px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+.timer-display.time-low {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.5);
+  animation: pulse 1s ease-in-out infinite;
 }
 
-.age-label {
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.timer-label {
   font-size: 0.7rem;
   opacity: 0.7;
   margin-bottom: 0.25rem;
@@ -290,10 +350,51 @@ const toggleHelp = () => {
   letter-spacing: 1px;
 }
 
-.age-value {
-  font-size: 1.3rem;
+.timer-value {
+  font-size: 1.5rem;
   font-weight: 700;
   background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Courier New', monospace;
+}
+
+.time-low .timer-value {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.collect-display {
+  position: absolute;
+  top: 1rem;
+  left: 9rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 0.75rem 1.25rem;
+  color: white;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 100;
+}
+
+.collect-label {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.collect-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00cec9 0%, #81ecec 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -309,7 +410,7 @@ const toggleHelp = () => {
   z-index: 100;
 }
 
-.help-button {
+.help-button, .exit-button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -327,7 +428,7 @@ const toggleHelp = () => {
   transition: all 0.3s ease;
 }
 
-.help-button:hover {
+.help-button:hover, .exit-button:hover {
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 
@@ -335,45 +436,16 @@ const toggleHelp = () => {
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-.back-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 0.6rem 1rem;
-  color: white;
-  font-size: 0.85rem;
-  text-decoration: none;
-  box-shadow: 
-    0 4px 15px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
+.exit-button {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.3);
 }
 
-.back-button:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 
-    0 8px 25px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+.exit-button:hover {
+  background: rgba(255, 107, 107, 0.3);
 }
 
-.back-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 0.85rem;
-}
-
-.help-icon {
+.help-icon, .exit-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -383,6 +455,10 @@ const toggleHelp = () => {
   border-radius: 50%;
   font-weight: bold;
   font-size: 0.85rem;
+}
+
+.exit-icon {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
 }
 
 .help-panel {
@@ -508,13 +584,13 @@ const toggleHelp = () => {
   opacity: 0.9;
 }
 
-.element-list {
+.rule-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
-.element-item {
+.rule-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -523,9 +599,79 @@ const toggleHelp = () => {
   padding: 0.3rem 0;
 }
 
-.element-icon {
+.rule-icon {
   font-size: 1rem;
   flex-shrink: 0;
+}
+
+.exit-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.exit-modal-content {
+  background: rgba(30, 30, 60, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  color: white;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.exit-modal-content h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+}
+
+.exit-modal-content p {
+  margin: 0 0 1.5rem 0;
+  opacity: 0.7;
+}
+
+.exit-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.cancel-btn, .confirm-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+}
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
 }
 
 .scene-wrapper {

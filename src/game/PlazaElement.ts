@@ -3,190 +3,169 @@ import type { PlazaElementConfig, PlazaElementType } from '@/types/plazaElement'
 
 const TYPE_BUILDERS: Record<PlazaElementType, (group: THREE.Group, config: PlazaElementConfig) => void> = {
   museum: (group, config) => {
+    // 博物馆 - 增大尺寸
     const base = new THREE.Mesh(
-      new THREE.BoxGeometry(3, 0.3, 2),
+      new THREE.BoxGeometry(5, 0.5, 3.5),
       new THREE.MeshLambertMaterial({ color: 0xd4c5a9 })
     )
-    base.position.y = 0.15
+    base.position.y = 0.25
     base.castShadow = true
     group.add(base)
 
     const roof = new THREE.Mesh(
-      new THREE.ConeGeometry(2.2, 1.5, 4),
+      new THREE.ConeGeometry(3.5, 2.5, 4),
       new THREE.MeshLambertMaterial({ color: config.color })
     )
-    roof.position.y = 1.8
+    roof.position.y = 2.5
     roof.rotation.y = Math.PI / 4
     roof.castShadow = true
     group.add(roof)
 
-    const pillar1 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8),
-      new THREE.MeshLambertMaterial({ color: 0xf5f5dc })
-    )
-    pillar1.position.set(-1, 0.9, 0.7)
-    pillar1.castShadow = true
-    group.add(pillar1)
-
-    const pillar2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8),
-      new THREE.MeshLambertMaterial({ color: 0xf5f5dc })
-    )
-    pillar2.position.set(1, 0.9, 0.7)
-    pillar2.castShadow = true
-    group.add(pillar2)
+    // 四根柱子
+    const pillarPositions = [[-2, 1.5], [2, 1.5], [-2, -1.5], [2, -1.5]]
+    pillarPositions.forEach(([x, z]) => {
+      const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.25, 0.25, 2, 8),
+        new THREE.MeshLambertMaterial({ color: 0xf5f5dc })
+      )
+      pillar.position.set(x, 1.2, z)
+      pillar.castShadow = true
+      group.add(pillar)
+    })
 
     const pediment = new THREE.Mesh(
-      new THREE.BoxGeometry(3, 0.4, 0.1),
+      new THREE.BoxGeometry(5, 0.6, 0.15),
       new THREE.MeshLambertMaterial({ color: 0xf5f5dc })
     )
-    pediment.position.set(0, 1.5, 0.95)
+    pediment.position.set(0, 2, 1.75)
     group.add(pediment)
   },
 
   workshop: (group, config) => {
+    // 工坊 - 增大尺寸
     const base = new THREE.Mesh(
-      new THREE.BoxGeometry(2.5, 1.5, 2),
+      new THREE.BoxGeometry(4, 2.5, 3),
       new THREE.MeshLambertMaterial({ color: 0x8b7355 })
     )
-    base.position.y = 0.75
+    base.position.y = 1.25
     base.castShadow = true
     group.add(base)
 
     const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(2.8, 0.2, 2.3),
+      new THREE.BoxGeometry(4.5, 0.3, 3.5),
       new THREE.MeshLambertMaterial({ color: config.color })
     )
-    roof.position.y = 1.6
+    roof.position.y = 2.65
     roof.castShadow = true
     group.add(roof)
 
     const chimney = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.2, 0.25, 1, 8),
+      new THREE.CylinderGeometry(0.3, 0.35, 1.5, 8),
       new THREE.MeshLambertMaterial({ color: 0x654321 })
     )
-    chimney.position.set(0.8, 2.1, -0.5)
+    chimney.position.set(1.2, 3.5, -0.8)
     chimney.castShadow = true
     group.add(chimney)
 
     const door = new THREE.Mesh(
-      new THREE.BoxGeometry(0.6, 1, 0.1),
+      new THREE.BoxGeometry(1, 1.5, 0.15),
       new THREE.MeshLambertMaterial({ color: 0x4a3728 })
     )
-    door.position.set(0, 0.5, 1.01)
+    door.position.set(0, 0.75, 1.51)
     group.add(door)
 
     const anvil = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.3, 0.4),
+      new THREE.BoxGeometry(0.8, 0.5, 0.6),
       new THREE.MeshLambertMaterial({ color: 0x696969 })
     )
-    anvil.position.set(-0.8, 0.15, 1.2)
+    anvil.position.set(-1.2, 0.25, 1.8)
     anvil.castShadow = true
     group.add(anvil)
   },
 
   temple: (group, config) => {
+    // 神殿 - 增大尺寸
     const steps = new THREE.Mesh(
-      new THREE.BoxGeometry(3.5, 0.3, 3),
+      new THREE.BoxGeometry(5.5, 0.5, 4.5),
       new THREE.MeshLambertMaterial({ color: 0xe8e0d0 })
     )
-    steps.position.y = 0.15
+    steps.position.y = 0.25
     steps.castShadow = true
     group.add(steps)
 
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(2.5, 2, 2),
+      new THREE.BoxGeometry(4, 3, 3),
       new THREE.MeshLambertMaterial({ color: config.color })
     )
-    body.position.y = 1.3
+    body.position.y = 2
     body.castShadow = true
     group.add(body)
 
     const topRoof = new THREE.Mesh(
-      new THREE.ConeGeometry(1.8, 1.2, 4),
+      new THREE.ConeGeometry(2.8, 2, 4),
       new THREE.MeshLambertMaterial({ color: 0xc9a84c })
     )
-    topRoof.position.y = 2.9
+    topRoof.position.y = 4.5
     topRoof.rotation.y = Math.PI / 4
     topRoof.castShadow = true
     group.add(topRoof)
 
     const orb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.2, 16, 16),
+      new THREE.SphereGeometry(0.35, 16, 16),
       new THREE.MeshBasicMaterial({ color: 0xffd700 })
     )
-    orb.position.y = 3.6
+    orb.position.y = 5.5
     group.add(orb)
 
     for (let i = 0; i < 4; i++) {
       const angle = (i * Math.PI) / 2
       const pillar = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, 0.12, 2, 8),
+        new THREE.CylinderGeometry(0.2, 0.2, 3, 8),
         new THREE.MeshLambertMaterial({ color: 0xf0ead6 })
       )
-      pillar.position.set(Math.cos(angle) * 1, 1.3, Math.sin(angle) * 1)
+      pillar.position.set(Math.cos(angle) * 1.6, 2, Math.sin(angle) * 1.6)
       pillar.castShadow = true
       group.add(pillar)
     }
   },
 
   market: (group, config) => {
+    // 市集 - 增大尺寸
     const counter = new THREE.Mesh(
-      new THREE.BoxGeometry(3, 0.8, 1.5),
+      new THREE.BoxGeometry(4.5, 1.2, 2.5),
       new THREE.MeshLambertMaterial({ color: 0xdeb887 })
     )
-    counter.position.y = 0.4
+    counter.position.y = 0.6
     counter.castShadow = true
     group.add(counter)
 
-    const canopyPole1 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8),
-      new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-    )
-    canopyPole1.position.set(-1.3, 1.65, -0.6)
-    canopyPole1.castShadow = true
-    group.add(canopyPole1)
-
-    const canopyPole2 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8),
-      new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-    )
-    canopyPole2.position.set(1.3, 1.65, -0.6)
-    canopyPole2.castShadow = true
-    group.add(canopyPole2)
-
-    const canopyPole3 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8),
-      new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-    )
-    canopyPole3.position.set(-1.3, 1.65, 0.6)
-    canopyPole3.castShadow = true
-    group.add(canopyPole3)
-
-    const canopyPole4 = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8),
-      new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-    )
-    canopyPole4.position.set(1.3, 1.65, 0.6)
-    canopyPole4.castShadow = true
-    group.add(canopyPole4)
+    const polePositions = [[-2, -1], [2, -1], [-2, 1], [2, 1]]
+    polePositions.forEach(([x, z]) => {
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 4, 8),
+        new THREE.MeshLambertMaterial({ color: 0x8b4513 })
+      )
+      pole.position.set(x, 2.5, z)
+      pole.castShadow = true
+      group.add(pole)
+    })
 
     const canopy = new THREE.Mesh(
-      new THREE.BoxGeometry(3.2, 0.1, 1.8),
+      new THREE.BoxGeometry(5, 0.15, 3),
       new THREE.MeshLambertMaterial({ color: config.color, transparent: true, opacity: 0.85 })
     )
-    canopy.position.y = 2.9
+    canopy.position.y = 4.5
     canopy.castShadow = true
     group.add(canopy)
 
     for (let i = 0; i < 3; i++) {
       const good = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 0.4, 0.4),
+        new THREE.BoxGeometry(0.6, 0.6, 0.6),
         new THREE.MeshLambertMaterial({
           color: [0xff6347, 0x4682b4, 0x32cd32][i]
         })
       )
-      good.position.set(-0.8 + i * 0.8, 1, 0)
+      good.position.set(-1.2 + i * 1.2, 1.5, 0)
       good.castShadow = true
       group.add(good)
     }
@@ -211,6 +190,9 @@ export class PlazaElement {
     this.createGlowRing()
     this.createLabel()
     this.setPosition(config.position.x, config.position.z)
+
+    // 关键：将 mesh 添加到场景中！
+    this.scene.add(this.mesh)
   }
 
   private createGlowRing() {
@@ -252,8 +234,18 @@ export class PlazaElement {
     this.labelElement = label
   }
 
-  public updateLabelScreenPosition(camera: THREE.Camera, renderer: THREE.WebGLRenderer): void {
+  public updateLabelScreenPosition(camera: THREE.Camera, renderer: THREE.WebGLRenderer, characterPosition?: THREE.Vector3): void {
     if (!this.labelElement) return
+
+    // 距离检测：如果提供了角色位置，只在一定距离内显示标签
+    const maxLabelDistance = 40 // 建筑标签显示距离稍远
+    if (characterPosition) {
+      const distance = this.mesh.position.distanceTo(characterPosition)
+      if (distance > maxLabelDistance) {
+        this.labelElement.style.display = 'none'
+        return
+      }
+    }
 
     const position = new THREE.Vector3(
       this.mesh.position.x,
@@ -265,10 +257,21 @@ export class PlazaElement {
     const x = (position.x * 0.5 + 0.5) * renderer.domElement.clientWidth
     const y = (-position.y * 0.5 + 0.5) * renderer.domElement.clientHeight
 
-    if (position.z < 1) {
+    // 检测是否在视口内（添加边界缓冲）
+    const margin = 50 // 边界缓冲像素
+    const isInViewport = position.z < 1 && 
+                         x >= -margin && 
+                         x <= renderer.domElement.clientWidth + margin &&
+                         y >= -margin && 
+                         y <= renderer.domElement.clientHeight + margin
+
+    if (isInViewport) {
       this.labelElement.style.display = 'block'
-      this.labelElement.style.left = `${x}px`
-      this.labelElement.style.top = `${y}px`
+      // 限制标签位置在视口内，防止滚动条
+      const clampedX = Math.max(0, Math.min(x, renderer.domElement.clientWidth))
+      const clampedY = Math.max(0, Math.min(y, renderer.domElement.clientHeight))
+      this.labelElement.style.left = `${clampedX}px`
+      this.labelElement.style.top = `${clampedY}px`
     } else {
       this.labelElement.style.display = 'none'
     }
@@ -340,7 +343,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'museum',
       description: '探索中华五千年文明的瑰宝与传承',
       color: 0xb8860b,
-      position: { x: -18, z: -5 },
+      position: { x: -25, z: -20 },
       estimatedWeeks: 2
     },
     {
@@ -349,7 +352,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'museum',
       description: '感受大自然的鬼斧神工与生命奥秘',
       color: 0x2e8b57,
-      position: { x: 18, z: 5 },
+      position: { x: 25, z: 20 },
       estimatedWeeks: 2
     },
     {
@@ -358,7 +361,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'workshop',
       description: '亲手体验陶瓷制作的匠心工艺',
       color: 0xcd853f,
-      position: { x: -5, z: -18 },
+      position: { x: -20, z: -25 },
       estimatedWeeks: 1
     },
     {
@@ -367,7 +370,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'workshop',
       description: '学习非物质文化遗产的精妙技艺',
       color: 0x8b0000,
-      position: { x: 5, z: 18 },
+      position: { x: 20, z: 25 },
       estimatedWeeks: 1
     },
     {
@@ -376,7 +379,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'temple',
       description: '朝觐科学范式演变的宏伟殿堂',
       color: 0x4169e1,
-      position: { x: 0, z: -20 },
+      position: { x: 0, z: -35 },
       estimatedWeeks: 3
     },
     {
@@ -385,7 +388,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'temple',
       description: '在思辨的殿堂中探寻真理之光',
       color: 0x6a0dad,
-      position: { x: 0, z: 20 },
+      position: { x: 0, z: 35 },
       estimatedWeeks: 3
     },
     {
@@ -394,7 +397,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'market',
       description: '在知识的集市中交换智慧与见闻',
       color: 0xff6347,
-      position: { x: -15, z: 12 },
+      position: { x: -25, z: 20 },
       estimatedWeeks: 1
     },
     {
@@ -403,7 +406,7 @@ export function generatePlazaElements(): PlazaElementConfig[] {
       type: 'market',
       description: '以技能会友，在交流中共同成长',
       color: 0xff8c00,
-      position: { x: 15, z: -12 },
+      position: { x: 25, z: -20 },
       estimatedWeeks: 1
     }
   ]

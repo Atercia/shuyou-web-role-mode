@@ -230,7 +230,11 @@ export class NPC {
     if (this.interactionCircle) {
       this.scene.remove(this.interactionCircle)
       this.interactionCircle.geometry.dispose()
-      this.interactionCircle.material.dispose()
+      if (Array.isArray(this.interactionCircle.material)) {
+        this.interactionCircle.material.forEach((m) => m.dispose())
+      } else if (this.interactionCircle.material) {
+        this.interactionCircle.material.dispose()
+      }
     }
     this.mesh.traverse((child) => {
       if (child instanceof THREE.Mesh) {

@@ -20,9 +20,14 @@ const router = createRouter({
       component: () => import('../views/achievement/AchievementView.vue')
     },
     {
-      path: '/plaza',
-      name: 'plaza',
-      component: () => import('../views/PlazaView.vue')
+      path: '/challenge',
+      name: 'challenge',
+      component: () => import('../views/ChallengeView.vue')
+    },
+    {
+      path: '/challenge-result',
+      name: 'challenge-result',
+      component: () => import('../views/ChallengeResultView.vue')
     },
     {
       path: '/fragment-interior',

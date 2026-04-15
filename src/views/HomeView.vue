@@ -57,11 +57,11 @@ const hoveredEntry = ref<string | null>(null)
           场景入口
         </h2>
         <div class="entry-cards">
-          <router-link to="/plaza" class="entry-card education-card">
-            <div class="card-icon">🎓</div>
+          <router-link to="/challenge" class="entry-card challenge-card">
+            <div class="card-icon">⚔️</div>
             <div class="card-body">
-              <h3>教育研学广场</h3>
-              <p>进入教育研学广场，探索知识与记忆的碎片世界</p>
+              <h3>研学挑战</h3>
+              <p>进入肉鸽模式挑战，在20分钟内收集尽可能多的隐喻碎片</p>
             </div>
             <div class="card-arrow">→</div>
           </router-link>
@@ -188,12 +188,12 @@ const hoveredEntry = ref<string | null>(null)
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
 }
 
-.education-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.challenge-card {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
 }
 
-.education-card:hover {
-  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+.challenge-card:hover {
+  box-shadow: 0 12px 40px rgba(255, 107, 107, 0.4);
 }
 
 .achievement-card {

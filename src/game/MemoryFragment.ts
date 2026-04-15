@@ -93,8 +93,18 @@ export class MemoryFragment {
     this.labelElement = label
   }
 
-  public updateLabelScreenPosition(camera: THREE.Camera, renderer: THREE.WebGLRenderer): void {
+  public updateLabelScreenPosition(camera: THREE.Camera, renderer: THREE.WebGLRenderer, characterPosition?: THREE.Vector3): void {
     if (!this.labelElement) return
+
+    // 距离检测：如果提供了角色位置，只在一定距离内显示标签
+    const maxLabelDistance = 30 // 最大显示标签距离
+    if (characterPosition) {
+      const distance = this.mesh.position.distanceTo(characterPosition)
+      if (distance > maxLabelDistance) {
+        this.labelElement.style.display = 'none'
+        return
+      }
+    }
 
     // 使用碎片的基准位置（不包含悬浮动画），标签固定在底部
     const baseY = this.config.size + 1
@@ -109,10 +119,21 @@ export class MemoryFragment {
     const x = (position.x * 0.5 + 0.5) * renderer.domElement.clientWidth
     const y = (-position.y * 0.5 + 0.5) * renderer.domElement.clientHeight
 
-    if (position.z < 1) {
+    // 检测是否在视口内（添加边界缓冲）
+    const margin = 50 // 边界缓冲像素
+    const isInViewport = position.z < 1 && 
+                         x >= -margin && 
+                         x <= renderer.domElement.clientWidth + margin &&
+                         y >= -margin && 
+                         y <= renderer.domElement.clientHeight + margin
+
+    if (isInViewport) {
       this.labelElement.style.display = 'block'
-      this.labelElement.style.left = `${x}px`
-      this.labelElement.style.top = `${y}px`
+      // 限制标签位置在视口内，防止滚动条
+      const clampedX = Math.max(0, Math.min(x, renderer.domElement.clientWidth))
+      const clampedY = Math.max(0, Math.min(y, renderer.domElement.clientHeight))
+      this.labelElement.style.left = `${clampedX}px`
+      this.labelElement.style.top = `${clampedY}px`
     } else {
       this.labelElement.style.display = 'none'
     }
@@ -194,12 +215,12 @@ export function generateRandomFragment(id: number): FragmentConfig {
   const duration = Math.floor(10 + size * 20) // 大小越大，用时越长
   const estimatedWeeks = Math.floor(1 + size * 3) // 1-4周
 
-  // 随机位置（避开中心区域和建筑物）
+  // 随机位置（扩大到 100x100 范围，避开中心区域和建筑物）
   let x, z
   do {
-    x = (Math.random() - 0.5) * 40
-    z = (Math.random() - 0.5) * 40
-  } while (Math.abs(x) < 5 && Math.abs(z) < 5) // 避开中心区域
+    x = (Math.random() - 0.5) * 100
+    z = (Math.random() - 0.5) * 100
+  } while (Math.abs(x) < 8 && Math.abs(z) < 8) // 避开中心区域
 
   return {
     id: `fragment-${id}`,

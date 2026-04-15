@@ -299,7 +299,9 @@ function checkInteractions() {
 
   if (foundPoint && closestPoint !== nearbyKnowledgePoint) {
     nearbyKnowledgePoint = closestPoint
-    emit('knowledgePointNearby', closestPoint)
+    if (closestPoint) {
+      emit('knowledgePointNearby', closestPoint)
+    }
   } else if (!foundPoint && nearbyKnowledgePoint) {
     nearbyKnowledgePoint = null
     emit('knowledgePointLeave')

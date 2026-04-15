@@ -5,7 +5,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
 import { Character } from '@/game/Character'
 import { MemoryFragment, generateRandomFragment, type FragmentConfig } from '@/game/MemoryFragment'
-import { Book, generateBooks, type BookConfig } from '@/game/Book'
+import { Book, generateBooks } from '@/game/Book'
+import type { BookConfig } from '@/types/book'
 import { PlazaElement, generatePlazaElements } from '@/game/PlazaElement'
 import type { PlazaElementConfig } from '@/types/plazaElement'
 
@@ -129,25 +130,31 @@ function initScene() {
 }
 
 function createPlaza() {
-  const groundGeometry = new THREE.PlaneGeometry(60, 60)
+  // 扩大广场面积到 120x120
+  const groundGeometry = new THREE.PlaneGeometry(120, 120)
   const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90ee90 })
   const ground = new THREE.Mesh(groundGeometry, groundMaterial)
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   scene.add(ground)
 
-  const gridHelper = new THREE.GridHelper(60, 60, 0x228b22, 0x228b22)
+  const gridHelper = new THREE.GridHelper(120, 120, 0x228b22, 0x228b22)
   gridHelper.position.y = 0.01
   scene.add(gridHelper)
 
+  // 扩大障碍物分布范围
   const obstacles = [
-    { x: -10, z: -10, width: 3, depth: 3, height: 4, color: 0x8b4513 },
-    { x: 10, z: -10, width: 2, depth: 4, height: 3, color: 0xa0522d },
-    { x: -10, z: 10, width: 4, depth: 2, height: 5, color: 0xcd853f },
-    { x: 10, z: 10, width: 3, depth: 3, height: 2, color: 0xdeb887 },
-    { x: 0, z: -15, width: 5, depth: 2, height: 3, color: 0xbc8f8f },
-    { x: -15, z: 0, width: 2, depth: 5, height: 4, color: 0xf4a460 },
-    { x: 15, z: 0, width: 3, depth: 3, height: 6, color: 0xd2691e }
+    { x: -20, z: -20, width: 4, depth: 4, height: 5, color: 0x8b4513 },
+    { x: 20, z: -20, width: 3, depth: 5, height: 4, color: 0xa0522d },
+    { x: -20, z: 20, width: 5, depth: 3, height: 6, color: 0xcd853f },
+    { x: 20, z: 20, width: 4, depth: 4, height: 3, color: 0xdeb887 },
+    { x: 0, z: -30, width: 6, depth: 3, height: 4, color: 0xbc8f8f },
+    { x: -30, z: 0, width: 3, depth: 6, height: 5, color: 0xf4a460 },
+    { x: 30, z: 0, width: 4, depth: 4, height: 7, color: 0xd2691e },
+    { x: -35, z: -35, width: 3, depth: 3, height: 4, color: 0x8b4513 },
+    { x: 35, z: -35, width: 4, depth: 4, height: 5, color: 0xa0522d },
+    { x: -35, z: 35, width: 5, depth: 3, height: 4, color: 0xcd853f },
+    { x: 35, z: 35, width: 3, depth: 5, height: 6, color: 0xdeb887 }
   ]
 
   obstacles.forEach((obs) => {
@@ -160,13 +167,22 @@ function createPlaza() {
     scene.add(mesh)
   })
 
+  // 扩大树木分布范围
   const trees = [
-    { x: -8, z: -5 },
-    { x: 8, z: -5 },
-    { x: -5, z: 8 },
-    { x: 5, z: 8 },
-    { x: -12, z: 12 },
-    { x: 12, z: -12 }
+    { x: -15, z: -10 },
+    { x: 15, z: -10 },
+    { x: -10, z: 15 },
+    { x: 10, z: 15 },
+    { x: -25, z: 25 },
+    { x: 25, z: -25 },
+    { x: -40, z: -15 },
+    { x: 40, z: 15 },
+    { x: -15, z: 40 },
+    { x: 15, z: -40 },
+    { x: -50, z: 0 },
+    { x: 50, z: 0 },
+    { x: 0, z: -50 },
+    { x: 0, z: 50 }
   ]
 
   trees.forEach((tree) => {
@@ -301,16 +317,18 @@ function updateFragments(deltaTime: number) {
 }
 
 function updateLabels() {
+  const charPos = character?.getPosition()
+  
   fragments.forEach((fragment) => {
-    fragment.updateLabelScreenPosition(camera, renderer)
+    fragment.updateLabelScreenPosition(camera, renderer, charPos)
   })
   
   books.forEach((book) => {
-    book.updateLabelScreenPosition(camera, renderer)
+    book.updateLabelScreenPosition(camera, renderer, charPos)
   })
 
   plazaElements.forEach((el) => {
-    el.updateLabelScreenPosition(camera, renderer)
+    el.updateLabelScreenPosition(camera, renderer, charPos)
   })
 }
 
@@ -398,5 +416,18 @@ function updateCamera() {
   height: 100%;
   display: block;
   outline: none;
+}
+
+/* 防止标签导致滚动条 */
+:global(body) {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* 确保标签不会导致布局溢出 */
+:global([class*="label"]) {
+  max-width: 100vw;
+  max-height: 100vh;
 }
 </style>
