@@ -6,6 +6,8 @@ import { useKeyboardControls } from '@/composables/useKeyboardControls'
 import { Character } from '@/game/Character'
 import { MemoryFragment, generateRandomFragment, type FragmentConfig } from '@/game/MemoryFragment'
 import { Book, generateBooks, type BookConfig } from '@/game/Book'
+import { PlazaElement, generatePlazaElements } from '@/game/PlazaElement'
+import type { PlazaElementConfig } from '@/types/plazaElement'
 
 const canvasRef = ref<HTMLCanvasElement>()
 const emit = defineEmits<{
@@ -13,6 +15,8 @@ const emit = defineEmits<{
   fragmentLeave: []
   bookNearby: [book: BookConfig]
   bookLeave: []
+  plazaElementNearby: [element: PlazaElementConfig]
+  plazaElementLeave: []
 }>()
 
 let scene: THREE.Scene
@@ -22,58 +26,39 @@ let controls: OrbitControls
 let animationId: number
 let lastTime = 0
 
-// 游戏对象
 let character: Character
 const fragments: MemoryFragment[] = []
 const books: Book[] = []
+const plazaElements: PlazaElement[] = []
 let nearbyFragment: MemoryFragment | null = null
 let nearbyBook: Book | null = null
+let nearbyPlazaElement: PlazaElement | null = null
 const { isKeyPressed } = useKeyboardControls()
 
 onMounted(() => {
   if (!canvasRef.value) return
 
-  // 初始化场景
   initScene()
-
-  // 创建广场
   createPlaza()
-
-  // 创建记忆碎片
   createFragments()
-
-  // 创建书籍
   createBooks()
-
-  // 创建角色
+  createPlazaElements()
   character = new Character(scene)
 
-  // 动画循环
   const animate = (time: number) => {
     animationId = requestAnimationFrame(animate)
 
     const deltaTime = (time - lastTime) / 1000
     lastTime = time
 
-    // 更新角色
     updateCharacter()
-
-    // 更新碎片
     updateFragments(deltaTime)
-
-    // 更新书籍
     updateBooks(deltaTime, time)
-
-    // 更新标签位置
+    updatePlazaElements(deltaTime)
     updateLabels()
-
-    // 检测碎片交互
     checkFragmentInteraction()
-
-    // 检测书籍交互
     checkBookInteraction()
-
-    // 更新相机跟随角色
+    checkPlazaElementInteraction()
     updateCamera()
 
     controls.update()
@@ -81,7 +66,6 @@ onMounted(() => {
   }
   animate(0)
 
-  // 响应式调整
   const handleResize = () => {
     if (!canvasRef.value) return
     camera.aspect = canvasRef.value.clientWidth / canvasRef.value.clientHeight
@@ -95,20 +79,17 @@ onUnmounted(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
-  // 清理碎片
   fragments.forEach(fragment => fragment.dispose())
-  // 清理书籍
   books.forEach(book => book.dispose())
+  plazaElements.forEach(el => el.dispose())
   controls?.dispose()
   renderer?.dispose()
 })
 
 function initScene() {
-  // 场景
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x87ceeb) // 天空蓝
+  scene.background = new THREE.Color(0x87ceeb)
 
-  // 相机
   camera = new THREE.PerspectiveCamera(
     45,
     canvasRef.value!.clientWidth / canvasRef.value!.clientHeight,
@@ -117,7 +98,6 @@ function initScene() {
   )
   camera.position.set(15, 15, 15)
 
-  // 渲染器
   renderer = new THREE.WebGLRenderer({
     canvas: canvasRef.value!,
     antialias: true
@@ -126,13 +106,11 @@ function initScene() {
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
-  // 控制器
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableDamping = true
   controls.dampingFactor = 0.05
-  controls.maxPolarAngle = Math.PI / 2 - 0.1 // 防止相机进入地下
+  controls.maxPolarAngle = Math.PI / 2 - 0.1
 
-  // 灯光
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
   scene.add(ambientLight)
 
@@ -151,20 +129,17 @@ function initScene() {
 }
 
 function createPlaza() {
-  // 创建广场地面
-  const groundGeometry = new THREE.PlaneGeometry(50, 50)
+  const groundGeometry = new THREE.PlaneGeometry(60, 60)
   const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90ee90 })
   const ground = new THREE.Mesh(groundGeometry, groundMaterial)
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   scene.add(ground)
 
-  // 添加网格辅助线
-  const gridHelper = new THREE.GridHelper(50, 50, 0x228b22, 0x228b22)
+  const gridHelper = new THREE.GridHelper(60, 60, 0x228b22, 0x228b22)
   gridHelper.position.y = 0.01
   scene.add(gridHelper)
 
-  // 创建一些装饰性的方块（建筑物/障碍物）
   const obstacles = [
     { x: -10, z: -10, width: 3, depth: 3, height: 4, color: 0x8b4513 },
     { x: 10, z: -10, width: 2, depth: 4, height: 3, color: 0xa0522d },
@@ -185,7 +160,6 @@ function createPlaza() {
     scene.add(mesh)
   })
 
-  // 添加一些树木
   const trees = [
     { x: -8, z: -5 },
     { x: 8, z: -5 },
@@ -201,7 +175,6 @@ function createPlaza() {
 }
 
 function createTree(x: number, z: number) {
-  // 树干
   const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 2, 8)
   const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 })
   const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial)
@@ -209,7 +182,6 @@ function createTree(x: number, z: number) {
   trunk.castShadow = true
   scene.add(trunk)
 
-  // 树冠
   const leavesGeometry = new THREE.ConeGeometry(2, 4, 8)
   const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 })
   const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial)
@@ -219,7 +191,6 @@ function createTree(x: number, z: number) {
 }
 
 function createFragments() {
-  // 生成8-12个随机碎片
   const fragmentCount = 8 + Math.floor(Math.random() * 5)
 
   for (let i = 0; i < fragmentCount; i++) {
@@ -230,7 +201,6 @@ function createFragments() {
 }
 
 function createBooks() {
-  // 生成3本书籍
   const bookConfigs = generateBooks()
   
   for (const config of bookConfigs) {
@@ -239,10 +209,26 @@ function createBooks() {
   }
 }
 
+function createPlazaElements() {
+  const elementConfigs = generatePlazaElements()
+
+  for (const config of elementConfigs) {
+    const element = new PlazaElement(scene, config)
+    plazaElements.push(element)
+  }
+}
+
 function updateBooks(deltaTime: number, time: number) {
   books.forEach(book => {
     book.update(deltaTime, time)
     book.updateLabelScreenPosition(camera, renderer)
+  })
+}
+
+function updatePlazaElements(deltaTime: number) {
+  plazaElements.forEach(el => {
+    el.update(deltaTime)
+    el.updateLabelScreenPosition(camera, renderer)
   })
 }
 
@@ -258,15 +244,12 @@ function checkBookInteraction() {
     if (isNearby) {
       foundNearby = true
       if (nearbyBook !== book) {
-        // 取消之前的高亮
         if (nearbyBook) {
           nearbyBook.setHighlighted(false)
           emit('bookLeave')
         }
-        // 高亮新的书籍
         nearbyBook = book
         nearbyBook.setHighlighted(true)
-        // 发送靠近事件
         emit('bookNearby', book.getConfig())
       }
       break
@@ -276,8 +259,38 @@ function checkBookInteraction() {
   if (!foundNearby && nearbyBook) {
     nearbyBook.setHighlighted(false)
     nearbyBook = null
-    // 发送离开事件
     emit('bookLeave')
+  }
+}
+
+function checkPlazaElementInteraction() {
+  if (!character) return
+
+  const charPos = character.getPosition()
+  let foundNearby = false
+
+  for (const el of plazaElements) {
+    const isNearby = el.checkInteraction(charPos, 4)
+
+    if (isNearby) {
+      foundNearby = true
+      if (nearbyPlazaElement !== el) {
+        if (nearbyPlazaElement) {
+          nearbyPlazaElement.setHighlighted(false)
+          emit('plazaElementLeave')
+        }
+        nearbyPlazaElement = el
+        nearbyPlazaElement.setHighlighted(true)
+        emit('plazaElementNearby', el.getConfig())
+      }
+      break
+    }
+  }
+
+  if (!foundNearby && nearbyPlazaElement) {
+    nearbyPlazaElement.setHighlighted(false)
+    nearbyPlazaElement = null
+    emit('plazaElementLeave')
   }
 }
 
@@ -288,14 +301,16 @@ function updateFragments(deltaTime: number) {
 }
 
 function updateLabels() {
-  // 更新碎片标签位置
   fragments.forEach((fragment) => {
     fragment.updateLabelScreenPosition(camera, renderer)
   })
   
-  // 更新书籍标签位置
   books.forEach((book) => {
     book.updateLabelScreenPosition(camera, renderer)
+  })
+
+  plazaElements.forEach((el) => {
+    el.updateLabelScreenPosition(camera, renderer)
   })
 }
 
@@ -311,15 +326,12 @@ function checkFragmentInteraction() {
     if (isNearby) {
       foundNearby = true
       if (nearbyFragment !== fragment) {
-        // 取消之前的高亮
         if (nearbyFragment) {
           nearbyFragment.setHighlighted(false)
           emit('fragmentLeave')
         }
-        // 高亮新的碎片
         nearbyFragment = fragment
         nearbyFragment.setHighlighted(true)
-        // 发送靠近事件
         emit('fragmentNearby', fragment.getConfig())
       }
       break
@@ -329,21 +341,16 @@ function checkFragmentInteraction() {
   if (!foundNearby && nearbyFragment) {
     nearbyFragment.setHighlighted(false)
     nearbyFragment = null
-    // 发送离开事件
     emit('fragmentLeave')
   }
 }
 
-
-
 function updateCharacter() {
   if (!character) return
 
-  // 移动速度
   const moveSpeed = 0.15
   const jumpForce = 0.3
 
-  // 计算移动方向
   let moveX = 0
   let moveZ = 0
 
@@ -360,17 +367,14 @@ function updateCharacter() {
     moveX += moveSpeed
   }
 
-  // 跳跃
   if (isKeyPressed('Space')) {
     character.jump(jumpForce)
   }
 
-  // 应用移动
   if (moveX !== 0 || moveZ !== 0) {
     character.move(moveX, moveZ)
   }
 
-  // 更新角色物理
   character.update()
 }
 
@@ -378,7 +382,6 @@ function updateCamera() {
   if (!character) return
 
   const charPos = character.getPosition()
-  // 相机跟随角色，保持一定距离
   const targetPos = new THREE.Vector3(charPos.x + 15, charPos.y + 15, charPos.z + 15)
   camera.position.lerp(targetPos, 0.05)
   controls.target.lerp(charPos, 0.1)

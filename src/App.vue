@@ -1,14 +1,25 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
+
+const route = useRoute()
+
+const hideNavRoutes = ['/plaza', '/fragment-interior', '/book-interior', '/plaza-element/museum', '/plaza-element/workshop', '/plaza-element/temple', '/plaza-element/market']
+
+const showNav = computed(() => {
+  if (hideNavRoutes.some(r => route.path.startsWith(r))) return false
+  return true
+})
 </script>
 
 <template>
-  <header>
+  <header v-if="showNav">
     <div class="wrapper">
       <nav>
         <RouterLink to="/">首页</RouterLink>
-        <RouterLink to="/demo">2.5D Demo</RouterLink>
-        <RouterLink to="/plaza">广场探索</RouterLink>
+        <RouterLink to="/plaza">教育研学广场</RouterLink>
+        <RouterLink to="/achievement">成就馆</RouterLink>
+        <RouterLink to="/presale/one-center-four-platforms">售前板块</RouterLink>
       </nav>
     </div>
   </header>

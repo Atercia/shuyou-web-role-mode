@@ -15,6 +15,11 @@ const router = createRouter({
       component: () => import('../views/Demo25DView.vue')
     },
     {
+      path: '/achievement',
+      name: 'achievement',
+      component: () => import('../views/achievement/AchievementView.vue')
+    },
+    {
       path: '/plaza',
       name: 'plaza',
       component: () => import('../views/PlazaView.vue')
@@ -28,6 +33,31 @@ const router = createRouter({
       path: '/book-interior',
       name: 'book-interior',
       component: () => import('../views/BookInteriorView.vue')
+    },
+    {
+      path: '/plaza-element/:type',
+      name: 'plaza-element',
+      component: () => import('../views/education/PlazaElementView.vue')
+    },
+    {
+      path: '/presale/one-center-four-platforms',
+      name: 'presale-one-center-four-platforms',
+      component: () => import('../views/presale/one-center-four-platforms/IndexView.vue')
+    },
+    {
+      path: '/presale/middle-platform',
+      name: 'presale-middle-platform',
+      component: () => import('../views/presale/middle-platform/IndexView.vue')
+    },
+    {
+      path: '/presale/ticketing',
+      name: 'presale-ticketing',
+      component: () => import('../views/presale/ticketing/IndexView.vue')
+    },
+    {
+      path: '/presale/safety-production',
+      name: 'presale-safety-production',
+      component: () => import('../views/presale/safety-production/IndexView.vue')
     }
   ]
 })

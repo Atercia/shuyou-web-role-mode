@@ -8,6 +8,8 @@ import { useUserStore } from '@/stores/user'
 import { useKeyboardControls } from '@/composables/useKeyboardControls'
 import type { FragmentConfig } from '@/game/MemoryFragment'
 import type { BookConfig } from '@/game/Book'
+import type { PlazaElementConfig } from '@/types/plazaElement'
+import { PLAZA_ELEMENT_TYPE_META } from '@/types/plazaElement'
 
 const router = useRouter()
 const sceneStore = useSceneStore()
@@ -16,18 +18,17 @@ const { isKeyPressed } = useKeyboardControls()
 const containerRef = ref<HTMLDivElement>()
 const plazaSceneRef = ref<InstanceType<typeof PlazaScene>>()
 
-// 当前靠近的碎片
 const currentFragment = ref<FragmentConfig | null>(null)
 const showFragmentPrompt = ref(false)
 
-// 当前靠近的书籍
 const currentBook = ref<BookConfig | null>(null)
 const showBookPrompt = ref(false)
 
-// 帮助提示显示状态
+const currentPlazaElement = ref<PlazaElementConfig | null>(null)
+const showPlazaElementPrompt = ref(false)
+
 const showHelp = ref(false)
 
-// 空格键检测间隔
 let checkInterval: number
 
 onMounted(() => {
@@ -35,10 +36,11 @@ onMounted(() => {
     containerRef.value.focus()
   }
 
-  // 监听空格键进入碎片或书籍
   checkInterval = window.setInterval(() => {
     if (isKeyPressed('Space')) {
-      if (currentFragment.value) {
+      if (currentPlazaElement.value) {
+        enterPlazaElement(currentPlazaElement.value)
+      } else if (currentFragment.value) {
         enterFragment(currentFragment.value)
       } else if (currentBook.value) {
         enterBook(currentBook.value)
@@ -71,14 +73,19 @@ const handleBookLeave = () => {
   showBookPrompt.value = false
 }
 
+const handlePlazaElementNearby = (element: PlazaElementConfig) => {
+  currentPlazaElement.value = element
+  showPlazaElementPrompt.value = true
+}
+
+const handlePlazaElementLeave = () => {
+  currentPlazaElement.value = null
+  showPlazaElementPrompt.value = false
+}
+
 const enterFragment = (fragment: FragmentConfig) => {
-  // 清除间隔防止重复触发
   clearInterval(checkInterval)
-
-  // 增加年龄（碎片用时）
   userStore.addWeeks(fragment.estimatedWeeks)
-
-  // 生成独一无二的场景
   const sceneId = sceneStore.generateAndEnterScene({
     fragmentId: fragment.id,
     fragmentName: fragment.name,
@@ -86,8 +93,6 @@ const enterFragment = (fragment: FragmentConfig) => {
     dangerLevel: fragment.dangerLevel,
     fragmentColor: fragment.color
   })
-
-  // 进入场景
   router.push({
     path: '/fragment-interior',
     query: { sceneId }
@@ -95,19 +100,27 @@ const enterFragment = (fragment: FragmentConfig) => {
 }
 
 const enterBook = (book: BookConfig) => {
-  // 清除间隔防止重复触发
   clearInterval(checkInterval)
-
-  // 增加年龄（书籍用时）
   userStore.addWeeks(book.estimatedWeeks)
-
-  // 进入书籍场景
   router.push({
     path: '/book-interior',
     query: {
       bookId: book.id,
       bookName: book.name,
       bookColor: book.color.toString(16)
+    }
+  })
+}
+
+const enterPlazaElement = (element: PlazaElementConfig) => {
+  clearInterval(checkInterval)
+  userStore.addWeeks(element.estimatedWeeks)
+  router.push({
+    path: `/plaza-element/${element.type}`,
+    query: {
+      elementId: element.id,
+      elementName: element.name,
+      elementType: element.type
     }
   })
 }
@@ -119,22 +132,25 @@ const toggleHelp = () => {
 
 <template>
   <div class="plaza-container">
-    <!-- 左上角年龄显示 -->
     <div class="age-display">
       <div class="age-label">年龄</div>
       <div class="age-value">{{ userStore.formattedAge }}</div>
     </div>
 
-    <!-- 右上角帮助按钮 -->
-    <button class="help-button" @click="toggleHelp">
-      <span class="help-icon">?</span>
-      <span>帮助</span>
-    </button>
+    <div class="top-right-buttons">
+      <button class="help-button" @click="toggleHelp">
+        <span class="help-icon">?</span>
+        <span>帮助</span>
+      </button>
+      <router-link to="/" class="back-button">
+        <span class="back-icon">←</span>
+        <span>返回</span>
+      </router-link>
+    </div>
 
-    <!-- 帮助提示面板 -->
     <div v-if="showHelp" class="help-panel">
       <div class="help-header">
-        <h3>🏛️ 广场探索 - 操作指南</h3>
+        <h3>🎓 教育研学广场 - 操作指南</h3>
         <button class="close-btn" @click="toggleHelp">×</button>
       </div>
       <div class="key-bindings">
@@ -159,8 +175,37 @@ const toggleHelp = () => {
           <span>跳跃 / 交互</span>
         </div>
       </div>
-      <p class="hint">寻找发光的记忆碎片和书籍，靠近后按空格键进入探索</p>
-      <p class="hint">每完成一个碎片或书籍，年龄会增长对应的周数</p>
+      <div class="help-section">
+        <h4>🏛️ 场景元素</h4>
+        <div class="element-list">
+          <div class="element-item">
+            <span class="element-icon">💎</span>
+            <span>记忆碎片 — 靠近后按空格进入碎片内部探索</span>
+          </div>
+          <div class="element-item">
+            <span class="element-icon">📖</span>
+            <span>知识书籍 — 靠近后按空格阅读知识点</span>
+          </div>
+          <div class="element-item">
+            <span class="element-icon">🏛️</span>
+            <span>文博场馆 — 参观华夏文明与自然探索馆</span>
+          </div>
+          <div class="element-item">
+            <span class="element-icon">🔧</span>
+            <span>研学工坊 — 体验陶艺与非遗传承技艺</span>
+          </div>
+          <div class="element-item">
+            <span class="element-icon">⛩️</span>
+            <span>范式神殿 — 朝觐科学范式与哲学思辨殿堂</span>
+          </div>
+          <div class="element-item">
+            <span class="element-icon">🏪</span>
+            <span>知识市集 — 交换智慧与技能的集市</span>
+          </div>
+        </div>
+      </div>
+      <p class="hint">每完成一次探索，年龄会增长对应的周数</p>
+      <p class="hint">收集的隐喻碎片可在首页「成就馆」中查看</p>
     </div>
 
     <div ref="containerRef" class="scene-wrapper" tabindex="0">
@@ -170,10 +215,11 @@ const toggleHelp = () => {
         @fragment-leave="handleFragmentLeave"
         @book-nearby="handleBookNearby"
         @book-leave="handleBookLeave"
+        @plaza-element-nearby="handlePlazaElementNearby"
+        @plaza-element-leave="handlePlazaElementLeave"
       />
     </div>
 
-    <!-- 碎片交互提示 -->
     <InteractionPrompt
       :visible="showFragmentPrompt"
       :title="currentFragment?.name || '记忆碎片'"
@@ -182,13 +228,21 @@ const toggleHelp = () => {
       type="door"
     />
 
-    <!-- 书籍交互提示 -->
     <InteractionPrompt
       :visible="showBookPrompt"
       :title="currentBook?.name || '知识书籍'"
       :description="`用时: ${currentBook?.estimatedWeeks || 0}周 | 包含5个知识点`"
       action-key="空格"
       type="npc"
+    />
+
+    <InteractionPrompt
+      :visible="showPlazaElementPrompt"
+      :title="currentPlazaElement?.name || '广场建筑'"
+      :description="`${PLAZA_ELEMENT_TYPE_META[currentPlazaElement?.type || 'museum']?.label || ''} | 用时: ${currentPlazaElement?.estimatedWeeks || 0}周 | ${currentPlazaElement?.description || ''}`"
+      action-key="空格"
+      type="plaza-element"
+      :plaza-element-type="currentPlazaElement?.type"
     />
   </div>
 </template>
@@ -204,7 +258,6 @@ const toggleHelp = () => {
   background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #16213e 100%);
 }
 
-/* 左上角年龄显示 - 玻璃拟态风格 */
 .age-display {
   position: absolute;
   top: 1rem;
@@ -246,11 +299,17 @@ const toggleHelp = () => {
   background-clip: text;
 }
 
-/* 右上角帮助按钮 - 玻璃拟态 */
-.help-button {
+.top-right-buttons {
   position: absolute;
   top: 1rem;
   right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 100;
+}
+
+.help-button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -265,7 +324,6 @@ const toggleHelp = () => {
   box-shadow: 
     0 4px 15px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  z-index: 100;
   transition: all 0.3s ease;
 }
 
@@ -275,6 +333,44 @@ const toggleHelp = () => {
   box-shadow: 
     0 8px 25px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  color: white;
+  font-size: 0.85rem;
+  text-decoration: none;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.back-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.85rem;
 }
 
 .help-icon {
@@ -289,7 +385,6 @@ const toggleHelp = () => {
   font-size: 0.85rem;
 }
 
-/* 帮助面板 - 玻璃拟态 */
 .help-panel {
   position: absolute;
   top: 4rem;
@@ -402,7 +497,37 @@ const toggleHelp = () => {
   border-radius: 8px;
 }
 
-/* 场景容器 - 霓虹边框效果 */
+.help-section {
+  margin-bottom: 0.75rem;
+}
+
+.help-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.element-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.element-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.3rem 0;
+}
+
+.element-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
 .scene-wrapper {
   flex: 1;
   border: 1px solid rgba(102, 126, 234, 0.3);

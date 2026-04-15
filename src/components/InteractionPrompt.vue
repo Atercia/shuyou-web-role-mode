@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { PLAZA_ELEMENT_TYPE_META, type PlazaElementType } from '@/types/plazaElement'
 
 interface ConditionDetail {
   description: string
@@ -11,8 +12,9 @@ interface Props {
   title: string
   description?: string
   actionKey?: string
-  type: 'door' | 'npc' | 'door-locked'
+  type: 'door' | 'npc' | 'door-locked' | 'plaza-element'
   conditions?: ConditionDetail[]
+  plazaElementType?: PlazaElementType
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,12 +24,22 @@ const props = withDefaults(defineProps<Props>(), {
 
 const icon = computed(() => {
   if (props.type === 'door-locked') return '🔒'
-  return props.type === 'door' ? '🚪' : '👤'
+  if (props.type === 'door') return '🚪'
+  if (props.type === 'npc') return '👤'
+  if (props.type === 'plaza-element' && props.plazaElementType) {
+    return PLAZA_ELEMENT_TYPE_META[props.plazaElementType].icon
+  }
+  return '📍'
 })
 
 const actionText = computed(() => {
   if (props.type === 'door-locked') return ''
-  return props.type === 'door' ? '进入' : '对话'
+  if (props.type === 'door') return '进入'
+  if (props.type === 'npc') return '对话'
+  if (props.type === 'plaza-element' && props.plazaElementType) {
+    return PLAZA_ELEMENT_TYPE_META[props.plazaElementType].actionText
+  }
+  return '交互'
 })
 </script>
 
@@ -95,6 +107,11 @@ const actionText = computed(() => {
 .prompt-content.npc {
   border-color: #4ecdc4;
   box-shadow: 0 10px 40px rgba(78, 205, 196, 0.3);
+}
+
+.prompt-content.plaza-element {
+  border-color: #ffd700;
+  box-shadow: 0 10px 40px rgba(255, 215, 0, 0.3);
 }
 
 .icon {
