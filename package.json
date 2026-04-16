@@ -11,8 +11,9 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@sparkjsdev/spark": "^2.0.0",
     "pinia": "^2.1.7",
-    "three": "^0.162.0",
+    "three": "^0.180.0",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"
   },

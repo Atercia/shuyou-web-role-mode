@@ -25,6 +25,11 @@ const router = createRouter({
       component: () => import('../views/ChallengeView.vue')
     },
     {
+      path: '/spark-demo',
+      name: 'spark-demo',
+      component: () => import('../views/SparkDemoView.vue')
+    },
+    {
       path: '/challenge-result',
       name: 'challenge-result',
       component: () => import('../views/ChallengeResultView.vue')

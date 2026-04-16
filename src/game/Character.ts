@@ -88,8 +88,8 @@ export class Character {
     const newX = this.mesh.position.x + x
     const newZ = this.mesh.position.z + z
 
-    // 简单的边界检测（广场边界）
-    const boundary = 24
+    // 简单的边界检测（广场边界 120x120，留出边缘）
+    const boundary = 58
     if (newX >= -boundary && newX <= boundary) {
       this.mesh.position.x = newX
     }
